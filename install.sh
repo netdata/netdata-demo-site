@@ -4,7 +4,7 @@ LC_ALL=C
 umask 022
 
 # find our IP
-myip=$(ip -4 address show eth0 | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/')
+myip=( $(ip -4 address show eth0 | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/') )
 if [ -z "${myip}" ]
 	then
 	echo >&2 "Cannot find my IP !"
@@ -36,7 +36,7 @@ myinstall() {
 	fi
 
 	cat "files/${file}" | sed \
-		-e "s|MY_REAL_IP_TO_BE_REPLACED_HERE|${myip}|g" \
+		-e "s|MY_REAL_IP_TO_BE_REPLACED_HERE|${myip[*]}|g" \
 		>"${tmp}"
 
 	if [ ! -s "${tmp}" ]
