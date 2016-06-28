@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+
+# enable KSM
+echo 1 >/sys/kernel/mm/ksm/run
+echo 1000 >/sys/kernel/mm/ksm/sleep_millisecs
+
+# wait for conntract kernel module to be initialized
+ok=60
+while [ $ok -ne 0 ]
+do
+        ok=$(( ok - 1 ))
+        sysctl -w net/netfilter/nf_conntrack_tcp_loose=0 && ok=0
+        [ $ok -ne 0 ] && sleep 1
+done
+sysctl -w net.netfilter.nf_conntrack_max=$[65536*4]
+echo 65536 > /sys/module/nf_conntrack/parameters/hashsize
+
+# compiled named
+# /opt/named/sbin/named -u bind -4
+
+# restart netdata after named
+service netdata restart
+
+exit 0
