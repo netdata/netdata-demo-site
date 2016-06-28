@@ -33,3 +33,5 @@ echo
 echo "Building netdata..."
 cd /usr/src/netdata.git || exit 1
 ./netdata-installer.sh --dont-wait
+
+exit $?

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# for debian 8.5
+
 apt-get update
 apt-get dist-upgrade
 

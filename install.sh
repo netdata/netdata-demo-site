@@ -1,9 +1,15 @@
 #!/bin/bash
 
-# for debian 8.5
-
 LC_ALL=C
 umask 022
+
+# find our IP
+myip=$(ip -4 address show eth0 | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/')
+if [ -z "${myip}" ]
+	then
+	echo >&2 "Cannot find my IP !"
+	exit 1
+fi
 
 # -----------------------------------------------------------------------------
 
@@ -14,6 +20,8 @@ umask 022
 #./install-all-firehol.sh || exit 1
 
 # -----------------------------------------------------------------------------
+
+tmp=/tmp/installer.$RANDOM.$RANDOM.$$
 
 myinstall() {
 	local file="${1}" owner="${2}" perms="${3}" callback="${4}"
@@ -27,16 +35,18 @@ myinstall() {
 		return 1
 	fi
 
+	cat "files/${file}" | sed -e "s|MY_REAL_IP_TO_BE_REPLACED_HERE|${myip}|g" >"${tmp}"
+
 	if [ -f "/${file}" ]
 	then
-		diff -q "files/${file}" "/${file}"
+		diff -q "${tmp}" "/${file}"
 		if [ $? -eq 0 ]
 		then
 			echo >&2 " >> it is the same..."
 			return 0
 		else
 			echo >&2 " >> file /${file} has differences: "
-			diff "files/${file}" "/${file}"
+			diff "${tmp}" "/${file}"
 			REPLY=
 			while [ "${REPLY}" != "y" -a "${REPLY}" != "Y" ]
 			do
@@ -50,7 +60,7 @@ myinstall() {
 	fi
 
 	echo >&2 " >> installing: /${file} ..."
-	cp "files/${file}" "/${file}" || return 1
+	cp "${tmp}" "/${file}" || return 1
 	chown "${owner}" "/${file}" || return 1
 	chmod "${perms}" "/${file}" || return 1
 
@@ -99,7 +109,7 @@ myinstall etc/profile.d/prompt.sh root:root 755 || exit 1
 myinstall etc/rc.local root:root 755 || exit 1
 
 # -----------------------------------------------------------------------------
-# START EVERTYTHING
+# ENABLE EVERTYTHING
 
 echo >&2 "Reloading systemd"
 systemctl daemon-reload || exit 1
@@ -119,6 +129,11 @@ systemctl enable nginx || exit 1
 echo >&2 "Enabling ulogd2"
 systemctl enable ulogd2 || exit 1
 
+# -----------------------------------------------------------------------------
+# START EVERYTHING
+
+echo >&2
+
 echo >&2 "Starting ulogd2"
 systemctl start ulogd2 || exit 1
 
@@ -134,6 +149,6 @@ systemctl start nginx || exit 1
 echo >&2 "Restarting netdata"
 systemctl restart netdata || exit 1
 
+echo >&2
 echo >&2 "All done!"
 exit 0
-
