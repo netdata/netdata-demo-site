@@ -5,7 +5,7 @@ umask 022
 
 # find our IP
 myip=( $(ip -4 address show eth0 | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/') )
-if [ -z "${myip}" ]
+if [ -z "${myip[*]}" ]
 	then
 	echo >&2 "Cannot find my IP !"
 	exit 1
