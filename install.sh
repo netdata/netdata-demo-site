@@ -35,7 +35,15 @@ myinstall() {
 		return 1
 	fi
 
-	cat "files/${file}" | sed -e "s|MY_REAL_IP_TO_BE_REPLACED_HERE|${myip}|g" >"${tmp}"
+	cat "files/${file}" | sed \
+		-e "s|MY_REAL_IP_TO_BE_REPLACED_HERE|${myip}|g" \
+		>"${tmp}"
+
+	if [ ! -s "${tmp}" ]
+		then
+		echo " >> empty sized converted file: ${tmp} from files/${file}"
+		return 1
+	fi
 
 	if [ -f "/${file}" ]
 	then
