@@ -47,14 +47,14 @@ myinstall() {
 
 	if [ -f "/${file}" ]
 	then
-		diff -q "${tmp}" "/${file}"
+		diff -q "/${file}" "${tmp}"
 		if [ $? -eq 0 ]
 		then
 			echo >&2 " >> it is the same..."
 			return 0
 		else
 			echo >&2 " >> file /${file} has differences: "
-			diff "${tmp}" "/${file}"
+			diff "/${file}" "${tmp}"
 			REPLY=
 			while [ "${REPLY}" != "y" -a "${REPLY}" != "Y" ]
 			do
