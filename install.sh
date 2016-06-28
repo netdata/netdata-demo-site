@@ -13,11 +13,11 @@ fi
 
 # -----------------------------------------------------------------------------
 
-#./packages.sh || exit 1
+./packages.sh || exit 1
 
 # -----------------------------------------------------------------------------
 
-#./install-all-firehol.sh || exit 1
+./install-all-firehol.sh || exit 1
 
 # -----------------------------------------------------------------------------
 
@@ -122,20 +122,20 @@ myinstall etc/rc.local root:root 755 || exit 1
 echo >&2 "Reloading systemd"
 systemctl daemon-reload || exit 1
 
+echo >&2 "Enabling ulogd2"
+systemctl enable ulogd2 || exit 1
+
 echo >&2 "Enabling firehol"
 systemctl enable firehol || exit 1
 
 echo >&2 "Enabling fireqos"
 systemctl enable fireqos || exit 1
 
-echo >&2 "Enabling netdata"
-systemctl enable netdata || exit 1
-
 echo >&2 "Enabling nginx"
 systemctl enable nginx || exit 1
 
-echo >&2 "Enabling ulogd2"
-systemctl enable ulogd2 || exit 1
+echo >&2 "Enabling netdata"
+systemctl enable netdata || exit 1
 
 # -----------------------------------------------------------------------------
 # START EVERYTHING
@@ -143,16 +143,16 @@ systemctl enable ulogd2 || exit 1
 echo >&2
 
 echo >&2 "Starting ulogd2"
-systemctl start ulogd2 || exit 1
+systemctl restart ulogd2 || exit 1
 
 echo >&2 "Starting firehol"
-systemctl start firehol || exit 1
+systemctl restart firehol || exit 1
 
 echo >&2 "Starting fireqos"
-systemctl start fireqos || exit 1
+systemctl restart fireqos || exit 1
 
 echo >&2 "Starting nginx"
-systemctl start nginx || exit 1
+systemctl restart nginx || exit 1
 
 echo >&2 "Restarting netdata"
 systemctl restart netdata || exit 1
