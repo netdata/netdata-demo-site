@@ -67,7 +67,7 @@ validate_package_manager() {
 
 release2lsb_release() {
 	local file="${1}" x
-	echo >& "Loading ${file} ..."
+	echo >&2 "Loading ${file} ..."
 
 
 	x=$(<"${file}")
@@ -77,7 +77,7 @@ release2lsb_release() {
 		DISTRIB_RELEASE=
 		DISTRIB_CODENAME=
 		DISTRIB_DESCRIPTION=
-		eval "$(cat "${file}" | sed "s|^\(.*\) Linux release \(.*\) (\(.*\))$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g")"
+		eval "$(sed "s|^\(.*\) Linux release \(.*\) (\(.*\)).*$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
 		distribution="${DISTRIB_ID}"
 		version="${DISTRIB_RELEASE}"
 		codename="${DISTRIB_CODENAME}"
@@ -87,7 +87,7 @@ release2lsb_release() {
 		DISTRIB_RELEASE=
 		DISTRIB_CODENAME=
 		DISTRIB_DESCRIPTION=
-		eval "$(cat "${file}" | sed "s|^\(.*\) release \(.*\) (\(.*\))$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g")"
+		eval "$(sed "s|^\(.*\) release \(.*\) (\(.*\)).*$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
 		distribution="${DISTRIB_ID}"
 		version="${DISTRIB_RELEASE}"
 		codename="${DISTRIB_CODENAME}"
@@ -97,7 +97,7 @@ release2lsb_release() {
 		DISTRIB_RELEASE=
 		DISTRIB_CODENAME=
 		DISTRIB_DESCRIPTION=
-		eval "$(cat "${file}" | sed "s|^\(.*\) Linux release \(.*\)$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g")"
+		eval "$(sed "s|^\(.*\) Linux release \(.*\)$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
 		distribution="${DISTRIB_ID}"
 		version="${DISTRIB_RELEASE}"
 		codename="${DISTRIB_CODENAME}"
@@ -107,7 +107,7 @@ release2lsb_release() {
 		DISTRIB_RELEASE=
 		DISTRIB_CODENAME=
 		DISTRIB_DESCRIPTION=
-		eval "$(cat "${file}" | sed "s|^\(.*\) release \(.*\)$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g")"
+		eval "$(sed "s|^\(.*\) release \(.*\)$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
 		distribution="${DISTRIB_ID}"
 		version="${DISTRIB_RELEASE}"
 		codename="${DISTRIB_CODENAME}"
