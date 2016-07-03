@@ -20,6 +20,8 @@ package_installer=
 package_tree=
 
 validate_package_manager() {
+	echo >&2 "Checking package manager: ${1}"
+
 	case "${1}" in
 		apt-get)
 			[ -z "${apt_get}" ] && echo >&2 "${1} is not available." && return 1
@@ -63,6 +65,115 @@ validate_package_manager() {
 	esac
 }
 
+release2lsb_release() {
+	local file="${1}" x
+	echo >& "Loading ${file} ..."
+
+
+	x=$(<"${file}")
+	if [[ "${x}" =~ ^.*\ Linux\ release\ .*\ (.*)$ ]]
+		then
+		DISTRIB_ID=
+		DISTRIB_RELEASE=
+		DISTRIB_CODENAME=
+		DISTRIB_DESCRIPTION=
+		eval "$(cat "${file}" | sed "s|^\(.*\) Linux release \(.*\) (\(.*\))$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g")"
+		distribution="${DISTRIB_ID}"
+		version="${DISTRIB_RELEASE}"
+		codename="${DISTRIB_CODENAME}"
+	elif [[ "${x}" =~ ^.*\ release\ .*\ (.*)$ ]]
+		then
+		DISTRIB_ID=
+		DISTRIB_RELEASE=
+		DISTRIB_CODENAME=
+		DISTRIB_DESCRIPTION=
+		eval "$(cat "${file}" | sed "s|^\(.*\) release \(.*\) (\(.*\))$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g")"
+		distribution="${DISTRIB_ID}"
+		version="${DISTRIB_RELEASE}"
+		codename="${DISTRIB_CODENAME}"
+	elif [[ "${x}" =~ ^.*\ Linux\ release\ .*$ ]]
+		then
+		DISTRIB_ID=
+		DISTRIB_RELEASE=
+		DISTRIB_CODENAME=
+		DISTRIB_DESCRIPTION=
+		eval "$(cat "${file}" | sed "s|^\(.*\) Linux release \(.*\)$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g")"
+		distribution="${DISTRIB_ID}"
+		version="${DISTRIB_RELEASE}"
+		codename="${DISTRIB_CODENAME}"
+	elif [[ "${x}" =~ ^.*\ release\ .*$ ]]
+		then
+		DISTRIB_ID=
+		DISTRIB_RELEASE=
+		DISTRIB_CODENAME=
+		DISTRIB_DESCRIPTION=
+		eval "$(cat "${file}" | sed "s|^\(.*\) release \(.*\)$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g")"
+		distribution="${DISTRIB_ID}"
+		version="${DISTRIB_RELEASE}"
+		codename="${DISTRIB_CODENAME}"
+	else
+		echo >&2 "Cannot parse this lsb-release: ${x}"
+	fi
+}
+
+get_etc_lsb_release() {
+	echo >& "Loading /etc/lsb-release ..."
+
+	DISTRIB_ID=
+	DISTRIB_RELEASE=
+	DISTRIB_CODENAME=
+	DISTRIB_DESCRIPTION=
+	source /etc/lsb-release
+	distribution="${DISTRIB_ID}"
+	version="${DISTRIB_RELEASE}"
+	codename="${DISTRIB_CODENAME}"
+}
+
+autodetect_distribution() {
+	if [ ! -z "${lsb_release}" ]
+		then
+		echo >&2 "Running command: lsb_release ..."
+		eval "declare -A release=( $(lsb_release -a 2>/dev/null | sed -e "s|^\(.*\):[[:space:]]*\(.*\)$|[\1]=\"\2\"|g") )"
+		distribution="${release[Distributor ID]}"
+		version="${release[Release]}"
+		codename="${release[Codename]}"
+	fi
+
+	if [ -z "${distribution}" -a -f "/etc/lsb-release" ]
+		then
+		get_etc_lsb_release
+	fi
+
+	if [ -z "${distribution}" ]
+		then
+		echo >&2 "Your system does not have command 'lsb_release' or the file '/etc/lsb-release'"
+		echo >&2 "Trying to figure out the distribution without lsb-release..."
+
+		if [ -f "/etc/arch-release" ]
+			then
+			release2lsb_release "/etc/arch-release"
+		fi
+
+		if [ -f "/etc/redhat-release" ]
+			then
+			release2lsb_release "/etc/redhat-release"
+		fi
+
+		if [ -f "/etc/centos-release" ]
+			then
+			release2lsb_release "/etc/centos-release"
+		fi
+	fi
+
+	if [ -z "${distribution}" ]
+		then
+		echo >&2 "Cannot figure out the distribution. Your have to pick it."
+		user_picks_distribution
+	else
+		autodetect_package_manager
+	fi
+}
+
 user_picks_distribution() {
 	echo >&2
 	echo >&2 "I NEED YOUR HELP"
@@ -94,7 +205,7 @@ user_picks_distribution() {
 
 autodetect_package_manager() {
 	case "${distribution,,}" in
-		arch)
+		arch*)
 			package_installer="install_pacman"
 			package_tree="arch"
 			if [ -z "${pacman}" ]
@@ -104,7 +215,7 @@ autodetect_package_manager() {
 			fi
 			;;
 
-		gentoo)
+		gentoo*)
 			package_installer="install_emerge"
 			package_tree="debian"
 			if [ -z "${emerge}" ]
@@ -114,7 +225,7 @@ autodetect_package_manager() {
 			fi
 			;;
 
-		debian|ubuntu|elementary\ os)
+		debian*|ubuntu*|elementary*)
 			package_installer="install_apt_get"
 			package_tree="debian"
 			if [ -z "${apt_get}" ]
@@ -124,7 +235,7 @@ autodetect_package_manager() {
 			fi
 			;;
 
-		fedora|redhat|centos)
+		fedora*|redhat*|red\ hat*|centos*)
 			package_installer=
 			package_tree="redhat"
 			[ ! -z "${dnf}" ] && package_installer="install_dnf"
@@ -166,21 +277,10 @@ while [ -z "${package_installer}" -o -z "${package_tree}" ]
 	do
 	if [ -z "${distribution}" ]
 		then
-		if [ -z "${lsb_release}" ]
-			then
-			# we don't have distribution and we don't have lsb_release
-			echo >&2 "Your system does not have command: lsb_release"
-			user_picks_distribution
-		else
-			# we don't have distribution, but we have lsb_release
-			eval "declare -A release=( $(lsb_release -a 2>/dev/null | sed -e "s|^\(.*\):[[:space:]]*\(.*\)$|[\1]=\"\2\"|g") )"
-			distribution="${release[Distributor ID]}"
-			version="${release[Release]}"
-			codename="${release[Codename]}"
-			autodetect_package_manager
-		fi
+		# we dont know the distribution
+		autodetect_distribution
 	else
-		# we have a distribution
+		# we know the distribution
 		autodetect_package_manager
 	fi
 done
