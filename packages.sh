@@ -19,53 +19,16 @@ codename=
 package_installer=
 package_tree=
 
-check_package_manager() {
-	echo >&2 "Checking package manager: ${1}"
-
-	case "${1}" in
-		apt-get)
-			[ -z "${apt_get}" ] && echo >&2 "${1} is not available." && return 1
-			package_installer="install_apt_get"
-			package_tree="debian"
-			return 0
-			;;
-
-		dnf)
-			[ -z "${dnf}" ] && echo >&2 "${1} is not available." && return 1
-			package_installer="install_dnf"
-			package_tree="rhel"
-			return 0
-			;;
-
-		emerge)
-			[ -z "${emerge}" ] && echo >&2 "${1} is not available." && return 1
-			package_installer="install_emerge"
-			package_tree="gentoo"
-			return 0
-			;;
-
-		pacman)
-			[ -z "${pacman}" ] && echo >&2 "${1} is not available." && return 1
-			package_installer="install_pacman"
-			package_tree="arch"
-			return 0
-			;;
-
-		yum)
-			[ -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
-			package_installer="install_yum"
-			package_tree="rhel"
-			return 0
-			;;
-
-		*)
-			echo >&2 "Invalid package manager: '${1}'."
-			return 1
-			;;
-	esac
-}
-
 release2lsb_release() {
+	# loads the given /etc/x-release file
+	# this file is normaly a single line containing something like
+	#
+	# X Linux release 1.2.3 (release-name)
+	#
+	# It attempts to parse it
+	# If it succeeds, it returns 0
+	# otherwise it returns 1
+
 	local file="${1}" x DISTRIB_ID= DISTRIB_RELEASE= DISTRIB_CODENAME= DISTRIB_DESCRIPTION=
 	echo >&2 "Loading ${file} ..."
 
@@ -95,6 +58,12 @@ release2lsb_release() {
 }
 
 get_os_release() {
+	# Loads the /etc/os-release file
+	# Only the required fields are loaded
+	#
+	# If it manages to load /etc/os-release, it returns 0
+	# otherwise it returns 1
+
 	local x NAME= ID= ID_LIKE= VERSION= VERSION_ID=
 	if [ -f "/etc/os-release" ]
 		then
@@ -122,6 +91,13 @@ get_os_release() {
 }
 
 get_etc_lsb_release() {
+	# Loads the /etc/lsb-release file
+	# If it fails, it attempts to run the command: lsb_release -a
+	# and parse its output
+	#
+	# If it manages to find the lsb-release, it returns 0
+	# otherwise it returns 1
+
 	local DISTRIB_ID= ISTRIB_RELEASE= DISTRIB_CODENAME= DISTRIB_DESCRIPTION=
 
 	echo >& "Loading /etc/lsb-release ..."
@@ -144,11 +120,11 @@ get_etc_lsb_release() {
 	return 0
 }
 
-autodetect_distribution() {
-	get_os_release || get_lsb_release || find_etc_any_release
-}
-
 find_etc_any_release() {
+	# Check for any of the known /etc/x-release files
+	# If it finds one, it loads it and returns 0
+	# otherwise it returns 1
+
 	if [ -f "/etc/arch-release" ]
 		then
 		release2lsb_release "/etc/arch-release" && return 0
@@ -167,13 +143,20 @@ find_etc_any_release() {
 	return 1
 }
 
+autodetect_distribution() {
+	# autodetection of distribution
+	get_os_release || get_lsb_release || find_etc_any_release
+}
+
 user_picks_distribution() {
+	# let the user pick a distribution
+	
 	echo >&2
 	echo >&2 "I NEED YOUR HELP"
 	echo >&2 "It seems I cannot detect your system automatically."
 	if [ -z "${emerge}" -a -z "${apt_get}" -a -z "${yum}" -a -z "${dnf}" -a -z "${pacman}" ]
 		then
-		echo >&2 "And it seems I cannot find a known packages installer in this system."
+		echo >&2 "And it seems I cannot find a known package manager in this system."
 		echo >&2 "Please open a github issue to help us support your system too."
 		exit 1
 	fi
@@ -218,7 +201,7 @@ detect_package_manager_from_distribution() {
 			fi
 			;;
 
-		debian*|ubuntu*|elementary*)
+		debian*|ubuntu*)
 			package_installer="install_apt_get"
 			package_tree="debian"
 			if [ -z "${apt_get}" ]
@@ -255,6 +238,52 @@ detect_package_manager_from_distribution() {
 		*)
 			# oops! unknown system
 			user_picks_distribution
+			;;
+	esac
+}
+
+check_package_manager() {
+	echo >&2 "Checking package manager: ${1}"
+
+	case "${1}" in
+		apt-get)
+			[ -z "${apt_get}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_apt_get"
+			package_tree="debian"
+			return 0
+			;;
+
+		dnf)
+			[ -z "${dnf}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_dnf"
+			package_tree="rhel"
+			return 0
+			;;
+
+		emerge)
+			[ -z "${emerge}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_emerge"
+			package_tree="gentoo"
+			return 0
+			;;
+
+		pacman)
+			[ -z "${pacman}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_pacman"
+			package_tree="arch"
+			return 0
+			;;
+
+		yum)
+			[ -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_yum"
+			package_tree="rhel"
+			return 0
+			;;
+
+		*)
+			echo >&2 "Invalid package manager: '${1}'."
+			return 1
 			;;
 	esac
 }
