@@ -150,7 +150,7 @@ autodetect_distribution() {
 
 user_picks_distribution() {
 	# let the user pick a distribution
-	
+
 	echo >&2
 	echo >&2 "I NEED YOUR HELP"
 	echo >&2 "It seems I cannot detect your system automatically."
@@ -355,8 +355,17 @@ packages() {
 
 	echo curl	# web client
 	echo jq		# JSON parsing
-	echo netcat # network swiss army knife
 	echo screen
+
+	case "${tree}" in
+		debian|gentoo|arch)
+				echo netcat # network swiss army knife
+				;;
+		rhel) 	echo nmap-ncat
+				;;
+		*)		echo >&2 "Unknown package tree '${tree}'."
+				;;
+	esac
 
 	# -------------------------------------------------------------------------
 	# firehol/fireqos/update-ipsets command line tools
