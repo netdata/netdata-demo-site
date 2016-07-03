@@ -74,16 +74,16 @@ release2lsb_release() {
 
 	if [[ "${x}" =~ ^.*[[:space:]]+Linux[[:space:]]+release[[:space:]]+.*[[:space:]]+(.*)[[:space:]]*$ ]]
 		then
-		eval "$(sed "s|^\(.*\)[[:space:]]+Linux[[:space:]]+release[[:space:]]+\(.*\)[[:space:]]+(\(.*\))[[:space:]]+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
+		eval "$(sed "s|^\(.*\)[[:space:]]\+Linux[[:space:]]\+release[[:space:]]\+\(.*\)[[:space:]]\+(\(.*\))[[:space:]]\+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
 	elif [[ "${x}" =~ ^.*[[:space:]]+Linux[[:space:]]+release[[:space:]]+.*[[:space:]]+$ ]]
 		then
-		eval "$(sed "s|^\(.*\)[[:space:]]+Linux[[:space:]]+release[[:space:]]+\(.*\)[[:space:]]+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
+		eval "$(sed "s|^\(.*\)[[:space:]]\+Linux[[:space:]]\+release[[:space:]]\+\(.*\)[[:space:]]\+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
 	elif [[ "${x}" =~ ^.*[[:space:]]+release[[:space:]]+.*[[:space:]]+(.*)[[:space:]]*$ ]]
 		then
-		eval "$(sed "s|^\(.*\)[[:space:]]+release[[:space:]]+\(.*\)[[:space:]]+(\(.*\))[[:space:]]+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
+		eval "$(sed "s|^\(.*\)[[:space:]]\+release[[:space:]]\+\(.*\)[[:space:]]\+(\(.*\))[[:space:]]\+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
 	elif [[ "${x}" =~ ^.*[[:space:]]+release[[:space:]]+.*[[:space:]]+$ ]]
 		then
-		eval "$(sed "s|^\(.*\)[[:space:]]+release[[:space:]]+\(.*\)[[:space:]]+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
+		eval "$(sed "s|^\(.*\)[[:space:]]\+release[[:space:]]\+\(.*\)[[:space:]]\+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
 	fi
 
 	distribution="${DISTRIB_ID}"
