@@ -245,7 +245,7 @@ detect_package_manager_from_distribution() {
 check_package_manager() {
 	# This is called only when the user is selecting a package manager
 	# It is used to verify the user selection is right
-	
+
 	echo >&2 "Checking package manager: ${1}"
 
 	case "${1}" in
@@ -420,7 +420,7 @@ packages() {
 				;;
 
 		rhel)	# echo python-pip
-				echo python-mysqldb
+				echo python-mysql
 				echo python-yaml
 				;;
 
