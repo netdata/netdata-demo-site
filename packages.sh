@@ -201,6 +201,7 @@ packages() {
 	echo curl	# web client
 	echo jq		# JSON parsing
 	echo netcat # network swiss army knife
+	echo screen
 
 	# -------------------------------------------------------------------------
 	# firehol/fireqos/update-ipsets command line tools
