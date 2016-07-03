@@ -215,7 +215,7 @@ detect_package_manager_from_distribution() {
 			echo >&2 "You should have EPEL enabled to install all the prerequisites."
 			echo >&2 "Check: http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/"
 			package_installer="install_yum"
-			package_tree="rhel"
+			package_tree="centos"
 			if [ -z "${yum}" ]
 				then
 				echo >&2 "command 'yum' is required to install packages on a '${distribution} ${version}' system."
@@ -280,7 +280,13 @@ check_package_manager() {
 		yum)
 			[ -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_yum"
-			package_tree="rhel"
+			[ -z "${distribution}" ] && echo >&2 "Warning: PLEASE SET THE DISTRIBUTION TOO (centos or redhat or fedora?)."
+			if [ "${distribution}" = "centos" ]
+				then
+				package_tree="centos"
+			else
+				package_tree="rhel"
+			fi
 			return 0
 			;;
 
@@ -338,7 +344,8 @@ packages() {
 		debian|gentoo|arch)
 				echo pkg-config
 				;;
-		rhel)	echo pkgconfig
+		rhel|centos)
+				echo pkgconfig
 				;;
 		*)		echo >&2 "Unknown package tree '${tree}'."
 				;;
@@ -364,7 +371,8 @@ packages() {
 		debian|gentoo|arch)
 				echo netcat # network swiss army knife
 				;;
-		rhel) 	echo nmap-ncat
+		rhel|centos)
+				echo nmap-ncat
 				;;
 		*)		echo >&2 "Unknown package tree '${tree}'."
 				;;
@@ -388,7 +396,8 @@ packages() {
 				echo libmnl-dev
 				;;
 
-		rhel)	echo zlib-devel
+		rhel|centos)
+				echo zlib-devel
 				echo uuid-devel
 				echo libmnl-devel
 				;;
@@ -421,6 +430,11 @@ packages() {
 
 		rhel)	# echo python-pip
 				echo python-mysql
+				echo python-yaml
+				;;
+
+		centos)	# echo python-pip
+				echo MySQL-python
 				echo python-yaml
 				;;
 
