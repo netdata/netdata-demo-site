@@ -226,8 +226,8 @@ detect_package_manager_from_distribution() {
 		fedora*|redhat*|red\ hat*|rhel*)
 			package_installer=
 			package_tree="rhel"
-			[ ! -z "${dnf}" ] && package_installer="install_dnf"
 			[ ! -z "${yum}" ] && package_installer="install_yum"
+			[ ! -z "${dnf}" ] && package_installer="install_dnf"
 			if [ -z "${package_installer}" ]
 				then
 				echo >&2 "command 'yum' or 'dnf' is required to install packages on a '${distribution} ${version}' system."
@@ -243,6 +243,9 @@ detect_package_manager_from_distribution() {
 }
 
 check_package_manager() {
+	# This is called only when the user is selecting a package manager
+	# It is used to verify the user selection is right
+	
 	echo >&2 "Checking package manager: ${1}"
 
 	case "${1}" in
