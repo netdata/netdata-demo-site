@@ -71,43 +71,43 @@ release2lsb_release() {
 
 
 	x=$(<"${file}")
-	if [[ "${x}" =~ ^.*\ Linux\ release\ .*\ (.*)$ ]]
+	if [[ "${x}" =~ ^.*[[:space:]]+Linux[[:space:]]+release[[:space:]]+.*[[:space:]]+(.*)[[:space:]]*$ ]]
 		then
 		DISTRIB_ID=
 		DISTRIB_RELEASE=
 		DISTRIB_CODENAME=
 		DISTRIB_DESCRIPTION=
-		eval "$(sed "s|^\(.*\) Linux release \(.*\) (\(.*\)).*$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
+		eval "$(sed "s|^\(.*\)[[:space]]+Linux[[:space]]+release[[:space]]+\(.*\)[[:space]]+(\(.*\))[[:space]]+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
 		distribution="${DISTRIB_ID}"
 		version="${DISTRIB_RELEASE}"
 		codename="${DISTRIB_CODENAME}"
-	elif [[ "${x}" =~ ^.*\ release\ .*\ (.*)$ ]]
+	elif [[ "${x}" =~ ^.*[[:space:]]+Linux[[:space:]]+release[[:space:]]+.*[[:space:]]+$ ]]
 		then
 		DISTRIB_ID=
 		DISTRIB_RELEASE=
 		DISTRIB_CODENAME=
 		DISTRIB_DESCRIPTION=
-		eval "$(sed "s|^\(.*\) release \(.*\) (\(.*\)).*$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
+		eval "$(sed "s|^\(.*\)[[:space]]+Linux[[:space]]+release[[:space]]+\(.*\)[[:space]]+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
 		distribution="${DISTRIB_ID}"
 		version="${DISTRIB_RELEASE}"
 		codename="${DISTRIB_CODENAME}"
-	elif [[ "${x}" =~ ^.*\ Linux\ release\ .*$ ]]
+	elif [[ "${x}" =~ ^.*[[:space:]]+release[[:space:]]+.*[[:space:]]+(.*)[[:space:]]*$ ]]
 		then
 		DISTRIB_ID=
 		DISTRIB_RELEASE=
 		DISTRIB_CODENAME=
 		DISTRIB_DESCRIPTION=
-		eval "$(sed "s|^\(.*\) Linux release \(.*\)$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
+		eval "$(sed "s|^\(.*\)[[:space]]+release[[:space]]+\(.*\)[[:space]]+(\(.*\))[[:space]]+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2\nDISTRIB_CODENAME=\3|g" <${file})"
 		distribution="${DISTRIB_ID}"
 		version="${DISTRIB_RELEASE}"
 		codename="${DISTRIB_CODENAME}"
-	elif [[ "${x}" =~ ^.*\ release\ .*$ ]]
+	elif [[ "${x}" =~ ^.*[[:space:]]+release[[:space:]]+.*[[:space:]]+$ ]]
 		then
 		DISTRIB_ID=
 		DISTRIB_RELEASE=
 		DISTRIB_CODENAME=
 		DISTRIB_DESCRIPTION=
-		eval "$(sed "s|^\(.*\) release \(.*\)$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
+		eval "$(sed "s|^\(.*\)[[:space]]+release[[:space]]+\(.*\)[[:space]]+$|DISTRIB_ID=\1\nDISTRIB_RELEASE=\2|g" <${file})"
 		distribution="${DISTRIB_ID}"
 		version="${DISTRIB_RELEASE}"
 		codename="${DISTRIB_CODENAME}"
