@@ -33,7 +33,7 @@ check_package_manager() {
 		dnf)
 			[ -z "${dnf}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_dnf"
-			package_tree="redhat"
+			package_tree="rhel"
 			return 0
 			;;
 
@@ -54,7 +54,7 @@ check_package_manager() {
 		yum)
 			[ -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_yum"
-			package_tree="redhat"
+			package_tree="rhel"
 			return 0
 			;;
 
@@ -145,7 +145,8 @@ get_etc_lsb_release() {
 }
 
 autodetect_distribution() {
-	get_os_release || get_lsb_release || find_etc_any_release
+	# get_os_release || get_lsb_release || find_etc_any_release
+	find_etc_any_release
 }
 
 find_etc_any_release() {
@@ -195,7 +196,7 @@ user_picks_distribution() {
 	done
 }
 
-autodetect_package_manager() {
+detect_package_manager_from_distribution() {
 	case "${1,,}" in
 		arch*)
 			package_installer="install_pacman"
@@ -227,9 +228,21 @@ autodetect_package_manager() {
 			fi
 			;;
 
-		fedora*|redhat*|red\ hat*|centos*|rhel*)
+		centos*)
+			echo >&2 "You should have EPEL enabled to install all the prerequisites."
+			echo >&2 "Check: http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/"
+			package_installer="install_yum"
+			package_tree="rhel"
+			if [ -z "${yum}" ]
+				then
+				echo >&2 "command 'yum' is required to install packages on a '${distribution} ${version}' system."
+				exit 1
+			fi
+			;;
+
+		fedora*|redhat*|red\ hat*|rhel*)
 			package_installer=
-			package_tree="redhat"
+			package_tree="rhel"
 			[ ! -z "${dnf}" ] && package_installer="install_dnf"
 			[ ! -z "${yum}" ] && package_installer="install_yum"
 			if [ -z "${package_installer}" ]
@@ -258,7 +271,7 @@ do
 			shift 2
 			;;
 		help|-h|--help)
-			echo >&2 "${ME} [distribution gentoo|debian|redhat [version 1.2.3] [codename NAME]] [installer apt-get|yum|dnf|emerge] "
+			echo >&2 "${ME} [distribution gentoo|debian|redhat|ubuntu|fedora|centos [version 1.2.3] [codename NAME]] [installer apt-get|yum|dnf|emerge] "
 			exit 1
 			;;
 		*) echo >&2 "Cannot understand option '${1}'"; exit 1 ;;
@@ -273,7 +286,7 @@ if [ -z "${package_installer}" -o -z "${package_tree}" ]
 		autodetect_distribution || user_picks_distribution
 	fi
 
-	autodetect_package_manager "${distribution}"
+	detect_package_manager_from_distribution "${distribution}"
 fi
 
 packages() {
@@ -293,7 +306,7 @@ packages() {
 		debian|gentoo|arch)
 				echo pkg-config
 				;;
-		redhat)	echo pkgconfig
+		rhel)	echo pkgconfig
 				;;
 		*)		echo >&2 "Unknown package tree '${tree}'."
 				;;
@@ -334,7 +347,7 @@ packages() {
 				echo libmnl-dev
 				;;
 
-		redhat)	echo zlib-devel
+		rhel)	echo zlib-devel
 				echo uuid-devel
 				echo libmnl-devel
 				;;
@@ -365,7 +378,7 @@ packages() {
 				echo python-yaml
 				;;
 
-		redhat)	# echo python-pip
+		rhel)	# echo python-pip
 				echo python-mysqldb
 				echo python-yaml
 				;;
