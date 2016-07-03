@@ -9,6 +9,10 @@ yum=$(which yum 2>/dev/null || command yum 2>/dev/null)
 dnf=$(which dnf 2>/dev/null || command dnf 2>/dev/null)
 pacman=$(which pacman 2>/dev/null || command pacman 2>/dev/null)
 
+# TODO
+# 1. add zypper (opensuse)
+# 2. add rpm (who uses it now?)
+
 distribution=
 version=
 codename=
@@ -269,7 +273,7 @@ packages() {
 				echo python-mysqldb
 				echo python-yaml
 				;;
-				
+
 		redhat)	# echo python-pip
 				echo python-mysqldb
 				echo python-yaml
@@ -329,7 +333,7 @@ install_emerge() {
 }
 
 install_pacman() {
-	pacman -S "${@}"
+	pacman --needed -S "${@}"
 }
 
 ${package_installer} $(packages ${package_tree} | sort -u) || exit 1
