@@ -209,7 +209,7 @@ autodetect_package_manager() {
 
 		gentoo*)
 			package_installer="install_emerge"
-			package_tree="debian"
+			package_tree="gentoo"
 			if [ -z "${emerge}" ]
 				then
 				echo >&2 "command 'emerge' is required to install packages on a '${distribution} ${version}' system."
@@ -332,8 +332,8 @@ packages() {
 		debian)	echo zlib1g-dev
 				echo uuid-dev
 				echo libmnl-dev
-
 				;;
+
 		redhat)	echo zlib-devel
 				echo uuid-devel
 				echo libmnl-devel
