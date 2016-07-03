@@ -7,6 +7,7 @@ emerge=$(which emerge 2>/dev/null || command emerge 2>/dev/null)
 apt_get=$(which apt-get 2>/dev/null || command apt-get 2>/dev/null)
 yum=$(which yum 2>/dev/null || command yum 2>/dev/null)
 dnf=$(which dnf 2>/dev/null || command dnf 2>/dev/null)
+pacman=$(which pacman 2>/dev/null || command pacman 2>/dev/null)
 
 distribution=
 version=
@@ -20,13 +21,6 @@ validate_package_manager() {
 			[ -z "${apt_get}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_apt_get"
 			package_tree="debian"
-			return 0
-			;;
-
-		yum)
-			[ -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
-			package_installer="install_yum"
-			package_tree="redhat"
 			return 0
 			;;
 
@@ -44,6 +38,20 @@ validate_package_manager() {
 			return 0
 			;;
 
+		pacman)
+			[ -z "${pacman}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_pacman"
+			package_tree="arch"
+			return 0
+			;;
+
+		yum)
+			[ -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_yum"
+			package_tree="redhat"
+			return 0
+			;;
+
 		*)
 			echo >&2 "Invalid package manager: '${1}'."
 			return 1
@@ -55,7 +63,7 @@ user_picks_distribution() {
 	echo >&2
 	echo >&2 "I NEED YOUR HELP"
 	echo >&2 "It seems I cannot detect your system automatically."
-	if [ -z "${emerge}" -a -z "${apt_get}" -a -z "${yum}" -a -z "${dnf}" ]
+	if [ -z "${emerge}" -a -z "${apt_get}" -a -z "${yum}" -a -z "${dnf}" -a -z "${pacman}" ]
 		then
 		echo >&2 "And it seems I cannot find a known packages installer in this system."
 		echo >&2 "Please open a github issue to help us support your system too."
@@ -68,6 +76,7 @@ user_picks_distribution() {
 	[ ! -z "${apt_get}" ] && echo >&2 " - Debian/Ubuntu based (installer is: apt-get)" && opts="${opts} apt-get"
 	[ ! -z "${yum}"     ] && echo >&2 " - Redhat/Fedora/Centos based (installer is: yum)" && opts="${opts} yum"
 	[ ! -z "${dnf}"     ] && echo >&2 " - Redhat/Fedora/Centos based (installer is: dnf)" && opts="${opts} dnf"
+	[ ! -z "${pacman}"  ] && echo >&2 " - Arch Linux based (installer is: pacman)" && opts="${opts} pacman"
 	[ ! -z "${emerge}"  ] && echo >&2 " - Gentoo based (installer is: emerge)" && opts="${opts} emerge"
 	echo >&2
 
@@ -81,8 +90,18 @@ user_picks_distribution() {
 
 autodetect_package_manager() {
 	case "${distribution,,}" in
+		arch)
+			package_installer="install_pacman"
+			package_tree="arch"
+			if [ -z "${pacman}" ]
+				then
+				echo >&2 "command 'pacman' is required to install packages on a '${distribution} ${version}' system."
+				exit 1
+			fi
+			;;
+
 		gentoo)
-			package_installer="install_gentoo"
+			package_installer="install_emerge"
 			package_tree="debian"
 			if [ -z "${emerge}" ]
 				then
@@ -176,11 +195,10 @@ packages() {
 	echo automake
 
 	case "${tree}" in
-		debian)	echo pkg-config
+		debian|gentoo|arch)
+				echo pkg-config
 				;;
 		redhat)	echo pkgconfig
-				;;
-		gentoo) echo pkg-config
 				;;
 		*)		echo >&2 "Unknown package tree '${tree}'."
 				;;
@@ -230,6 +248,12 @@ packages() {
 				echo sys-apps/util-linux
 				echo net-libs/libmnl
 				;;
+
+		arch)	echo zlib
+				echo util-linux
+				echo libmnl
+				;;
+
 		*)		echo >&2 "Unknown package tree '${tree}'."
 				;;
 	esac
@@ -245,14 +269,22 @@ packages() {
 				echo python-mysqldb
 				echo python-yaml
 				;;
+				
 		redhat)	# echo python-pip
 				echo python-mysqldb
 				echo python-yaml
 				;;
+
 		gentoo) # echo dev-python/pip
 				echo dev-python/mysqlclient
 				echo dev-python/pyyaml
 				;;
+
+		arch)   # echo python-pip
+				echo mysql-python
+				echo python-yaml
+				;;
+
 		*)		echo >&2 "Unknown package tree '${tree}'."
 				;;
 	esac
@@ -292,8 +324,12 @@ install_dnf() {
 	dnf install "${@}"
 }
 
-install_gentoo() {
+install_emerge() {
 	emerge --ask -DNv "${@}"
+}
+
+install_pacman() {
+	pacman -S "${@}"
 }
 
 ${package_installer} $(packages ${package_tree} | sort -u) || exit 1
