@@ -145,8 +145,7 @@ get_etc_lsb_release() {
 }
 
 autodetect_distribution() {
-	# get_os_release || get_lsb_release || find_etc_any_release
-	find_etc_any_release
+	get_os_release || get_lsb_release || find_etc_any_release
 }
 
 find_etc_any_release() {
@@ -155,15 +154,16 @@ find_etc_any_release() {
 		release2lsb_release "/etc/arch-release" && return 0
 	fi
 
+	if [ -f "/etc/centos-release" ]
+		then
+		release2lsb_release "/etc/centos-release" && return 0
+	fi
+
 	if [ -f "/etc/redhat-release" ]
 		then
 		release2lsb_release "/etc/redhat-release" && return 0
 	fi
 
-	if [ -f "/etc/centos-release" ]
-		then
-		release2lsb_release "/etc/centos-release" && return 0
-	fi
 	return 1
 }
 
