@@ -497,7 +497,7 @@ EOF
 
 
 install_apt_get() {
-	apt-get install "${@}"
+	apt-get install --ignore-missing "${@}"
 }
 
 install_yum() {
