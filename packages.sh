@@ -100,7 +100,7 @@ get_lsb_release() {
 
 	if [ -f "/etc/lsb-release" ]
 	then
-		echo >& "Loading /etc/lsb-release ..."
+		echo >&2 "Loading /etc/lsb-release ..."
 		local DISTRIB_ID= ISTRIB_RELEASE= DISTRIB_CODENAME= DISTRIB_DESCRIPTION=
 		eval "$(cat /etc/lsb-release | grep -E "^(DISTRIB_ID|DISTRIB_RELEASE|DISTRIB_CODENAME)=")"
 		distribution="${DISTRIB_ID}"
