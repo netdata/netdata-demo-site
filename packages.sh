@@ -31,6 +31,7 @@ version=
 codename=
 package_installer=
 package_tree=
+detection=
 
 release2lsb_release() {
 	# loads the given /etc/x-release file
@@ -67,6 +68,7 @@ release2lsb_release() {
 	codename="${DISTRIB_CODENAME}"
 
 	[ -z "${distribution}" ] && echo >&2 "Cannot parse this lsb-release: ${x}" && return 1
+	detection="${file}"
 	return 0
 }
 
@@ -90,6 +92,7 @@ get_os_release() {
 					distribution="${x}"
 					version="${VERSION_ID}"
 					codename="${VERSION}"
+					detection="/etc/os-release"
 					break
 					;;
 				*)
@@ -122,6 +125,7 @@ get_lsb_release() {
 		distribution="${DISTRIB_ID}"
 		version="${DISTRIB_RELEASE}"
 		codename="${DISTRIB_CODENAME}"
+		detection="/etc/lsb-release"
 	fi
 
 	if [ -z "${distribution}" -a ! -z "${lsb_release}" ]
@@ -132,6 +136,7 @@ get_lsb_release() {
 		distribution="${release[Distributor ID]}"
 		version="${release[Release]}"
 		codename="${release[Codename]}"
+		detection="lsb_release"
 	fi
 
 	[ -z "${distribution}" ] && echo >&2 "Cannot find valid distribution with lsb-release" && return 1
@@ -292,6 +297,7 @@ check_package_manager() {
 			[ -z "${apt_get}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_apt_get"
 			package_tree="debian"
+			detection="user-input"
 			return 0
 			;;
 
@@ -299,6 +305,7 @@ check_package_manager() {
 			[ -z "${dnf}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_dnf"
 			package_tree="rhel"
+			detection="user-input"
 			return 0
 			;;
 
@@ -306,6 +313,7 @@ check_package_manager() {
 			[ -z "${emerge}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_emerge"
 			package_tree="gentoo"
+			detection="user-input"
 			return 0
 			;;
 
@@ -313,6 +321,7 @@ check_package_manager() {
 			[ -z "${pacman}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_pacman"
 			package_tree="arch"
+			detection="user-input"
 			return 0
 			;;
 
@@ -325,6 +334,7 @@ check_package_manager() {
 			else
 				package_tree="rhel"
 			fi
+			detection="user-input"
 			return 0
 			;;
 
@@ -620,11 +630,12 @@ install_pacman() {
 
 cat <<EOF
 
-Distribution   : ${distribution}
-Version        : ${version}
-Codename       : ${codename}
-Package Manager: ${package_installer}
-Packages Tree  : ${package_tree}
+Distribution    : ${distribution}
+Version         : ${version}
+Codename        : ${codename}
+Package Manager : ${package_installer}
+Packages Tree   : ${package_tree}
+Detection Method: ${detection}
 
 Please make sure your system is up to date.
 
