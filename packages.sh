@@ -359,13 +359,13 @@ packages() {
 	echo cmake
 	echo traceroute
 	echo tcpdump
+	echo screen
 	
 	# -------------------------------------------------------------------------
 	# common command line tools
 
 	echo curl	# web client
 	echo jq		# JSON parsing
-	echo screen
 
 	case "${tree}" in
 		debian|gentoo|arch)
@@ -383,9 +383,16 @@ packages() {
 
 	echo iptables
 	echo ipset
-	echo ulogd
 	echo zip	# for update-ipsets
 	echo unzip	# for update-ipsets
+
+	case "${tree}" in
+		centos) # FIXME: centos does not have ulogd
+				;;
+
+		*)		echo ulogd
+				;;
+	esac
 
 	# -------------------------------------------------------------------------
 	# netdata libraries
