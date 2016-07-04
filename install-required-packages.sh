@@ -4,17 +4,20 @@ export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbi
 
 ME="${0}"
 
-PACKAGES_NETDATA=${PACKAGES_NETDATA-1}
-PACKAGES_NETDATA_NODEJS=${PACKAGES_NETDATA_NODEJS-1}
-PACKAGES_NETDATA_PYTHON=${PACKAGES_NETDATA_PYTHON-1}
+# These options control which packages we are going to install
+# They can be pre-set, but also can be controlled with command line options
+PACKAGES_NETDATA=${PACKAGES_NETDATA-0}
+PACKAGES_NETDATA_NODEJS=${PACKAGES_NETDATA_NODEJS-0}
+PACKAGES_NETDATA_PYTHON=${PACKAGES_NETDATA_PYTHON-0}
 PACKAGES_NETDATA_PYTHON_MYSQL=${PACKAGES_NETDATA_PYTHON_MYSQL-0}
 PACKAGES_DEBUG=${PACKAGES_DEBUG-0}
 PACKAGES_IPRANGE=${PACKAGES_IPRANGE-0}
 PACKAGES_FIREHOL=${PACKAGES_FIREHOL-0}
 PACKAGES_FIREQOS=${PACKAGES_FIREQOS-0}
 PACKAGES_UPDATE_IPSETS=${PACKAGES_UPDATE_IPSETS-0}
-PACKAGES_NGINX=${PACKAGES_NGINX-0}
+PACKAGES_NETDATA_DEMO_SITE=${PACKAGES_NETDATA_DEMO_SITE-0}
 
+# Check which package managers are available
 lsb_release=$(which lsb_release 2>/dev/null || command lsb_release 2>/dev/null)
 emerge=$(which emerge 2>/dev/null || command emerge 2>/dev/null)
 apt_get=$(which apt-get 2>/dev/null || command apt-get 2>/dev/null)
@@ -22,7 +25,7 @@ yum=$(which yum 2>/dev/null || command yum 2>/dev/null)
 dnf=$(which dnf 2>/dev/null || command dnf 2>/dev/null)
 pacman=$(which pacman 2>/dev/null || command pacman 2>/dev/null)
 
-# TODO
+# FIXME add
 # 1. add zypper (opensuse)
 # 2. add rpm (who uses it now?)
 
@@ -32,6 +35,65 @@ codename=
 package_installer=
 package_tree=
 detection=
+NAME=
+ID=
+ID_LIKE=
+VERSION=
+VERSION_ID=
+
+usage() {
+	cat <<EOF
+OPTIONS:
+
+${ME} [--dont-wait] \\
+  [distribution DD [version VV] [codename CN]] [installer IN] [packages]
+
+Supported distributions (DD):
+
+    - arch           (all Arch Linux derivatives)
+    - gentoo         (all Gentoo Linux derivatives)
+    - debian, ubuntu (all Debian and Ubuntu derivatives)
+    - redhat, fedora (all Red Hat and Fedora derivatives)
+    - centos         (all CentOS derivatives)
+
+Supported installers (IN):
+
+    - apt-get        all Debian / Ubuntu derivatives
+    - yum            all Red Hat / Fedora / CentOS derivatives
+    - dnf            newer Red Hat / Fedora
+    - emerge         all Gentoo derivatives
+
+Supported packages (you can append many of them):
+
+    - netdata-all    all packages required to install netdata
+                     including mysql client, nodejs, python, etc
+
+    - netdata        minimum packages required to install netdata
+                     (no mysql client, no nodejs, includes python)
+
+    - nodejs         install nodejs
+                     (required for monitoring named and SNMP)
+
+    - python         install python
+                     (including python-yaml, for config files parsing)
+
+    - python-mysql   install MySQLdb
+                     (for monitoring mysql)
+
+    - firehol-all    packages required for FireHOL, FireQoS, update-ipsets
+    - firehol        packages required for FireHOL
+    - fireqos        packages required for FireQoS
+    - update-ipsets  packages required for update-ipsets
+
+    - demo           packages required for running a netdata demo site
+                     (includes nginx and various debugging tools)
+
+
+If you don't supply the --dont-wait option, the program
+will ask you before touching your system.
+
+EOF
+}
 
 release2lsb_release() {
 	# loads the given /etc/x-release file
@@ -78,8 +140,10 @@ get_os_release() {
 	#
 	# If it manages to load /etc/os-release, it returns 0
 	# otherwise it returns 1
+	#
+	# It searches the ID_LIKE field for a compatible distribution
 
-	local x NAME= ID= ID_LIKE= VERSION= VERSION_ID=
+	local x
 	if [ -f "/etc/os-release" ]
 		then
 		echo >&2 "Loading /etc/os-release ..."
@@ -345,72 +409,12 @@ check_package_manager() {
 	esac
 }
 
-# parse command line arguments
-while [ ! -z "${1}" ]
-do
-	case "${1}" in
-		distribution) distribution="${2}"; shift ;;
-		version) version="${2}"; shift ;;
-		codename) codename="${2}"; shift ;;
-		netdata-all)
-			PACKAGES_NETDATA=1
-			PACKAGES_NETDATA_NODEJS=1
-			PACKAGES_NETDATA_PYTHON=1
-			PACKAGES_NETDATA_PYTHON_MYSQL=1
-			;;
-		netdata)
-			PACKAGES_NETDATA=1
-			PACKAGES_NETDATA_PYTHON=1
-			;;
-		mysql|netdata-mysql|netdata-python-mysql)
-			PACKAGES_NETDATA_PYTHON_MYSQL=1
-			;;
-		nodejs|netdata-nodejs)
-			PACKAGES_NETDATA_NODEJS=1
-			;;
-		firehol)
-			PACKAGES_IPRANGE=1
-			PACKAGES_FIREHOL=1
-			PACKAGES_FIREQOS=1
-			PACKAGES_UPDATE_IPSETS=1
-			;;
-		demo|all)
-			PACKAGES_NETDATA=1
-			PACKAGES_NETDATA_NODEJS=1
-			PACKAGES_NETDATA_PYTHON=1
-			PACKAGES_NETDATA_PYTHON_MYSQL=1
-			PACKAGES_DEBUG=1
-			PACKAGES_IPRANGE=1
-			PACKAGES_FIREHOL=1
-			PACKAGES_FIREQOS=1
-			PACKAGES_UPDATE_IPSETS=1
-			PACKAGES_NGINX=1
-			;;
-		installer)
-			check_package_manager "${2}" || exit 1
-			shift
-			;;
-		help|-h|--help)
-			echo >&2 "${ME} [distribution gentoo|debian|redhat|ubuntu|fedora|centos [version 1.2.3] [codename NAME]] [installer apt-get|yum|dnf|emerge] "
-			exit 1
-			;;
-		*) echo >&2 "Cannot understand option '${1}'"; exit 1 ;;
-	esac
-	shift
-done
-
-if [ -z "${package_installer}" -o -z "${package_tree}" ]
-	then
-	if [ -z "${distribution}" ]
-		then
-		# we dont know the distribution
-		autodetect_distribution || user_picks_distribution
-	fi
-
-	detect_package_manager_from_distribution "${distribution}"
-fi
-
 require_cmd() {
+	# check if any of the commands given as argument
+	# are present on this system
+	# If any of them is available, it returns 0
+	# otherwise 1
+
 	while [ ! -z "${1}" ]
 	do
 		which "${1}" >/dev/null 2>&1 && return 0
@@ -421,6 +425,8 @@ require_cmd() {
 }
 
 packages() {
+	# detect the packages we need to install on this system
+
 	local tree="${1}"
 
 	# -------------------------------------------------------------------------
@@ -433,6 +439,7 @@ packages() {
 	require_cmd autogen  || echo autogen
 	require_cmd automake || echo automake
 
+	# pkg-config
 	case "${tree}" in
 		debian|gentoo|arch)
 				require_cmd pkg-config || echo pkg-config
@@ -462,11 +469,10 @@ packages() {
 	# -------------------------------------------------------------------------
 	# common command line tools
 
-	# require_cmd curl || echo curl	# web client
-	# require_cmd jq   || echo jq	# JSON parsing
-
 	if [ ${PACKAGES_NETDATA} -ne 0 ]
 		then
+		require_cmd curl || echo curl	# web client
+
 		case "${tree}" in
 			debian|gentoo|arch)
 					require_cmd nc || echo netcat # network swiss army knife
@@ -481,6 +487,11 @@ packages() {
 
 	# -------------------------------------------------------------------------
 	# firehol/fireqos/update-ipsets command line tools
+
+	if [ ${PACKAGES_FIREQOS} -ne 0 ]
+		then
+		require_cmd ip || echo iproute2
+	fi
 
 	if [ ${PACKAGES_FIREHOL} -ne 0 ]
 		then
@@ -497,10 +508,9 @@ packages() {
 	if [ ${PACKAGES_UPDATE_IPSETS} -ne 0 ]
 		then
 		require_cmd ipset    || echo ipset
-		require_cmd zip      || echo zip	# for update-ipsets
-		require_cmd funzip   || echo unzip	# for update-ipsets
+		require_cmd zip      || echo zip
+		require_cmd funzip   || echo unzip
 	fi
-
 
 	# -------------------------------------------------------------------------
 	# netdata libraries
@@ -588,8 +598,9 @@ packages() {
 	# -------------------------------------------------------------------------
 	# applications needed for the netdata demo sites
 
-	if [ ${PACKAGES_NGINX} -ne 0 ]
+	if [ ${PACKAGES_NETDATA_DEMO_SITE} -ne 0 ]
 		then
+		require_cmd jq   || echo jq		# JSON parsing
 		require_cmd nginx || echo nginx
 	fi
 }
@@ -628,14 +639,144 @@ install_pacman() {
 	run pacman --needed -S "${@}"
 }
 
+if [ -z "${1}" ]
+	then
+	usage
+	exit 1
+fi
+
+# parse command line arguments
+DONT_WAIT=0
+while [ ! -z "${1}" ]
+do
+	case "${1}" in
+		distribution)
+			distribution="${2}"
+			shift
+			;;
+
+		version)
+			version="${2}"
+			shift
+			;;
+
+		codename)
+			codename="${2}"
+			shift
+			;;
+
+		installer)
+			check_package_manager "${2}" || exit 1
+			shift
+			;;
+			
+		dont-wait|--dont-wait)
+			DONT_WAIT=1
+			;;
+
+		netdata-all)
+			PACKAGES_NETDATA=1
+			PACKAGES_NETDATA_NODEJS=1
+			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			;;
+
+		netdata)
+			PACKAGES_NETDATA=1
+			PACKAGES_NETDATA_PYTHON=1
+			;;
+
+		python|python-yaml|yaml-python|pyyaml|netdata-python)
+			PACKAGES_NETDATA_PYTHON=1
+			;;
+
+		python-mysql|mysql-python|mysqldb|netdata-mysql)
+			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			;;
+
+		nodejs|netdata-nodejs)
+			PACKAGES_NETDATA_NODEJS=1
+			;;
+
+		firehol-all)
+			PACKAGES_IPRANGE=1
+			PACKAGES_FIREHOL=1
+			PACKAGES_FIREQOS=1
+			PACKAGES_UPDATE_IPSETS=1
+			;;
+
+		firehol)
+			PACKAGES_IPRANGE=1
+			PACKAGES_FIREHOL=1
+			;;
+
+		update-ipsets)
+			PACKAGES_IPRANGE=1
+			PACKAGES_UPDATE_IPSETS=1
+			;;
+
+		demo|all)
+			PACKAGES_NETDATA=1
+			PACKAGES_NETDATA_NODEJS=1
+			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			PACKAGES_DEBUG=1
+			PACKAGES_IPRANGE=1
+			PACKAGES_FIREHOL=1
+			PACKAGES_FIREQOS=1
+			PACKAGES_UPDATE_IPSETS=1
+			PACKAGES_NETDATA_DEMO_SITE=1
+			;;
+
+		help|-h|--help)
+			usage
+			exit 1
+			;;
+
+		*)
+			echo >&2 "ERROR: Cannot understand option '${1}'"
+			echo >&2 
+			usage
+			exit 1
+			;;
+	esac
+	shift
+done
+
+if [ -z "${package_installer}" -o -z "${package_tree}" ]
+	then
+	if [ -z "${distribution}" ]
+		then
+		# we dont know the distribution
+		autodetect_distribution || user_picks_distribution
+	fi
+
+	detect_package_manager_from_distribution "${distribution}"
+fi
+
+[ "${detection}" = "/etc/os-release" ] && cat <<EOF
+
+/etc/os-release information:
+NAME            : ${NAME}
+VERSION         : ${VERSION}
+ID              : ${ID}
+ID_LIKE         : ${ID_LIKE}
+VERSION_ID      : ${VERSION_ID}
+EOF
+
 cat <<EOF
 
+We detected these:
 Distribution    : ${distribution}
 Version         : ${version}
 Codename        : ${codename}
 Package Manager : ${package_installer}
 Packages Tree   : ${package_tree}
 Detection Method: ${detection}
+EOF
+
+cat <<EOF
 
 Please make sure your system is up to date.
 
@@ -643,13 +784,23 @@ The following command will be run:
 
 EOF
 
-DRYRUN=1
-${package_installer} $(packages ${package_tree} | sort -u | tr -s '\n'  ' ')
-DRYRUN=0
-echo >&2
+PACKAGES_TO_INSTALL=( $(packages ${package_tree} | sort -u) )
 
-read -p "Press ENTER to run it > "
+if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]
+	then
+	DRYRUN=1
+	${package_installer} "${PACKAGES_TO_INSTALL[@]}"
+	DRYRUN=0
+	echo >&2
 
-${package_installer} $(packages ${package_tree} | sort -u) || exit 1
+	if [ ${DONT_WAIT} -eq 0 ]
+		then
+		read -p "Press ENTER to run it > "
+	fi
+
+	${package_installer} "${PACKAGES_TO_INSTALL[@]}" || exit 1
+else
+	echo >&2 "All required packages are already installed"
+fi
 
 exit 0
