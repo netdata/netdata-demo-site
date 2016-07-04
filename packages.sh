@@ -182,6 +182,27 @@ user_picks_distribution() {
 	while [ -z "${REPLY}" ]
 	do
 		read -p "To proceed please write one of these:${opts}: "
+		if [ "${REPLY}" = "yum" -a -z "${distribution}" ]
+			then
+			REPLY=
+			while [ -z "${REPLY}" ]
+				do
+				read -p "yum in centos, rhel or fedora? > "
+				case "${REPLY,,}" in
+					fedora|rhel)
+						distribution="rhel"
+						;;
+					centos)
+						distribution="centos"
+						;;
+					*)
+						echo >&2 "Please enter 'centos', 'fedora' or 'rhel'."
+						REPLY=
+						;;
+				esac
+			done
+			REPLY="yum"
+		fi
 		check_package_manager "${REPLY}" || REPLY=
 	done
 }
@@ -287,7 +308,6 @@ check_package_manager() {
 		yum)
 			[ -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_yum"
-			[ -z "${distribution}" ] && echo >&2 "Warning: PLEASE SET THE DISTRIBUTION TOO (centos or redhat or fedora?)."
 			if [ "${distribution}" = "centos" ]
 				then
 				package_tree="centos"
