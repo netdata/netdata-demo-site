@@ -84,9 +84,12 @@ get_os_release() {
 					;;
 			esac
 		done
+		[ -z "${distribution}" ] && echo >&2 "Cannot find valid distribution in: ${ID} ${ID_LIKE}" && return 1
+	else
+		echo >&2 "Cannot find /etc/os-release" && return 1
 	fi
 
-	[ -z "${distribution}" ] && echo >&2 "Cannot find valid distribution in: ${ID} ${ID_LIKE}" && return 1
+	[ -z "${distribution}" ] && return 1
 	return 0
 }
 
