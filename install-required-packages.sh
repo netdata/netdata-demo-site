@@ -498,7 +498,7 @@ packages() {
 		require_cmd iptables || echo iptables
 		require_cmd ipset    || echo ipset
 		case "${tree}" in
-			centos) 	# FIXME: centos does not have ulogd
+			centos) echo >&2 "WARNING: CentOS does not have ulogd."
 					;;
 			*)		require_cmd ulogd ulogd2 || echo ulogd
 					;;
