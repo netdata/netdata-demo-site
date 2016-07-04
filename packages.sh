@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+
 ME="${0}"
 
 lsb_release=$(which lsb_release 2>/dev/null || command lsb_release 2>/dev/null)
@@ -440,7 +442,7 @@ packages() {
 	# -------------------------------------------------------------------------
 	# scripting interpreters for netdata plugins
 
-	require_cmd nodejs || echo nodejs
+	require_cmd nodejs node js || echo nodejs
 	require_cmd python || echo python
 
 	case "${tree}" in
@@ -479,6 +481,40 @@ packages() {
 	echo nginx
 }
 
+DRYRUN=0
+run() {
+
+	printf >&2 "%q " "${@}"
+	printf >&2 "\n"
+
+	if [ ! "${DRYRUN}" -eq 1 ]
+		then
+		"${@}"
+		return $?
+	fi
+	return 0
+}
+
+install_apt_get() {
+	run apt-get install "${@}"
+}
+
+install_yum() {
+	run yum install "${@}"
+}
+
+install_dnf() {
+	run dnf install "${@}"
+}
+
+install_emerge() {
+	run emerge --ask -DNv "${@}"
+}
+
+install_pacman() {
+	run pacman --needed -S "${@}"
+}
+
 cat <<EOF
 
 Distribution   : ${distribution}
@@ -487,34 +523,18 @@ Codename       : ${codename}
 Package Manager: ${package_installer}
 Packages Tree  : ${package_tree}
 
-The following packages will be installed:
-
-$(packages ${package_tree} | sort -u | tr -s '\n'  ' ' | fold -w 70 -s)
-
 Please make sure your system is up to date.
+
+The following command will be run:
 
 EOF
 
+DRYRUN=1
+${package_installer} $(packages ${package_tree} | sort -u | tr -s '\n'  ' ')
+DRYRUN=0
+echo >&2
 
-install_apt_get() {
-	apt-get install --ignore-missing "${@}"
-}
-
-install_yum() {
-	yum install "${@}"
-}
-
-install_dnf() {
-	dnf install "${@}"
-}
-
-install_emerge() {
-	emerge --ask -DNv "${@}"
-}
-
-install_pacman() {
-	pacman --needed -S "${@}"
-}
+read -p "Press ENTER to run it > "
 
 ${package_installer} $(packages ${package_tree} | sort -u) || exit 1
 
