@@ -90,7 +90,7 @@ get_os_release() {
 	return 0
 }
 
-get_etc_lsb_release() {
+get_lsb_release() {
 	# Loads the /etc/lsb-release file
 	# If it fails, it attempts to run the command: lsb_release -a
 	# and parse its output
@@ -98,13 +98,15 @@ get_etc_lsb_release() {
 	# If it manages to find the lsb-release, it returns 0
 	# otherwise it returns 1
 
-	local DISTRIB_ID= ISTRIB_RELEASE= DISTRIB_CODENAME= DISTRIB_DESCRIPTION=
-
-	echo >& "Loading /etc/lsb-release ..."
-	eval "$(cat /etc/lsb-release | grep -E "^(DISTRIB_ID|DISTRIB_RELEASE|DISTRIB_CODENAME)=")"
-	distribution="${DISTRIB_ID}"
-	version="${DISTRIB_RELEASE}"
-	codename="${DISTRIB_CODENAME}"
+	if [ -f "/etc/lsb-release" ]
+	then
+		echo >& "Loading /etc/lsb-release ..."
+		local DISTRIB_ID= ISTRIB_RELEASE= DISTRIB_CODENAME= DISTRIB_DESCRIPTION=
+		eval "$(cat /etc/lsb-release | grep -E "^(DISTRIB_ID|DISTRIB_RELEASE|DISTRIB_CODENAME)=")"
+		distribution="${DISTRIB_ID}"
+		version="${DISTRIB_RELEASE}"
+		codename="${DISTRIB_CODENAME}"
+	fi
 
 	if [ -z "${distribution}" -a ! -z "${lsb_release}" ]
 		then
@@ -327,25 +329,35 @@ if [ -z "${package_installer}" -o -z "${package_tree}" ]
 	detect_package_manager_from_distribution "${distribution}"
 fi
 
+require_cmd() {
+	while [ ! -z "${1}" ]
+	do
+		which "${1}" >/dev/null 2>&1 && return 0
+		command "${1}" >/dev/null 2>&1 && return 0
+		shift
+	done
+	return 1
+}
+
 packages() {
 	local tree="${1}"
 
 	# -------------------------------------------------------------------------
 	# basic build environment
-	
-	echo gcc
-	echo make
-	echo git
-	echo autoconf
-	echo autogen
-	echo automake
+
+	require_cmd gcc      || echo gcc
+	require_cmd make     || echo make
+	require_cmd git      || echo git
+	require_cmd autoconf || echo autoconf
+	require_cmd autogen  || echo autogen
+	require_cmd automake || echo automake
 
 	case "${tree}" in
 		debian|gentoo|arch)
-				echo pkg-config
+				require_cmd pkg-config || echo pkg-config
 				;;
 		rhel|centos)
-				echo pkgconfig
+				require_cmd pkg-config || echo pkgconfig
 				;;
 		*)		echo >&2 "Unknown package tree '${tree}'."
 				;;
@@ -354,25 +366,24 @@ packages() {
 	# -------------------------------------------------------------------------
 	# debugging tools for development
 
-	echo gdb
-	echo valgrind
-	echo cmake
-	echo traceroute
-	echo tcpdump
-	echo screen
-	
+	require_cmd gdb        || echo gdb
+	require_cmd valgrind   || echo valgrind
+	require_cmd traceroute || echo traceroute
+	require_cmd tcpdump    || echo tcpdump
+	require_cmd screen     || echo screen
+
 	# -------------------------------------------------------------------------
 	# common command line tools
 
-	echo curl	# web client
-	echo jq		# JSON parsing
+	require_cmd curl || echo curl	# web client
+	require_cmd jq   || echo jq		# JSON parsing
 
 	case "${tree}" in
 		debian|gentoo|arch)
-				echo netcat # network swiss army knife
+				require_cmd nc || echo netcat # network swiss army knife
 				;;
 		rhel|centos)
-				echo nmap-ncat
+				require_cmd nc || echo nmap-ncat
 				;;
 		*)		echo >&2 "Unknown package tree '${tree}'."
 				;;
@@ -381,16 +392,16 @@ packages() {
 	# -------------------------------------------------------------------------
 	# firehol/fireqos/update-ipsets command line tools
 
-	echo iptables
-	echo ipset
-	echo zip	# for update-ipsets
-	echo unzip	# for update-ipsets
+	require_cmd iptables || echo iptables
+	require_cmd ipset    || echo ipset
+	require_cmd zip      || echo zip	# for update-ipsets
+	require_cmd funzip   || echo unzip	# for update-ipsets
 
 	case "${tree}" in
 		centos) # FIXME: centos does not have ulogd
 				;;
 
-		*)		echo ulogd
+		*)		require_cmd ulogd ulogd2 || echo ulogd
 				;;
 	esac
 
@@ -398,7 +409,7 @@ packages() {
 	# netdata libraries
 
 	case "${tree}" in
-		debian)	echo zlib1g-dev
+		debian)		echo zlib1g-dev
 				echo uuid-dev
 				echo libmnl-dev
 				;;
@@ -409,12 +420,12 @@ packages() {
 				echo libmnl-devel
 				;;
 
-		gentoo)	echo sys-libs/zlib
+		gentoo)		echo sys-libs/zlib
 				echo sys-apps/util-linux
 				echo net-libs/libmnl
 				;;
 
-		arch)	echo zlib
+		arch)		echo zlib
 				echo util-linux
 				echo libmnl
 				;;
@@ -426,31 +437,31 @@ packages() {
 	# -------------------------------------------------------------------------
 	# scripting interpreters for netdata plugins
 
-	echo nodejs
-	echo python
+	require_cmd nodejs || echo nodejs
+	require_cmd python || echo python
 
 	case "${tree}" in
-		debian)	# echo python-pip
+		debian)		# echo python-pip
 				echo python-mysqldb
 				echo python-yaml
 				;;
 
-		rhel)	# echo python-pip
+		rhel)		# echo python-pip
 				echo python-mysql
 				echo python-yaml
 				;;
 
-		centos)	# echo python-pip
+		centos)		# echo python-pip
 				echo MySQL-python
 				echo python-yaml
 				;;
 
-		gentoo) # echo dev-python/pip
+		gentoo) 	# echo dev-python/pip
 				echo dev-python/mysqlclient
 				echo dev-python/pyyaml
 				;;
 
-		arch)   # echo python-pip
+		arch)   	# echo python-pip
 				echo mysql-python
 				echo python-yaml
 				;;
