@@ -4,6 +4,17 @@ export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbi
 
 ME="${0}"
 
+PACKAGES_NETDATA=${PACKAGES_NETDATA-1}
+PACKAGES_NETDATA_NODEJS=${PACKAGES_NETDATA_NODEJS-1}
+PACKAGES_NETDATA_PYTHON=${PACKAGES_NETDATA_PYTHON-1}
+PACKAGES_NETDATA_PYTHON_MYSQL=${PACKAGES_NETDATA_PYTHON_MYSQL-0}
+PACKAGES_DEBUG=${PACKAGES_DEBUG-0}
+PACKAGES_IPRANGE=${PACKAGES_IPRANGE-0}
+PACKAGES_FIREHOL=${PACKAGES_FIREHOL-0}
+PACKAGES_FIREQOS=${PACKAGES_FIREQOS-0}
+PACKAGES_UPDATE_IPSETS=${PACKAGES_UPDATE_IPSETS-0}
+PACKAGES_NGINX=${PACKAGES_NGINX-0}
+
 lsb_release=$(which lsb_release 2>/dev/null || command lsb_release 2>/dev/null)
 emerge=$(which emerge 2>/dev/null || command emerge 2>/dev/null)
 apt_get=$(which apt-get 2>/dev/null || command apt-get 2>/dev/null)
@@ -328,12 +339,46 @@ check_package_manager() {
 while [ ! -z "${1}" ]
 do
 	case "${1}" in
-		distribution) distribution="${2}"; shift 2 ;;
-		version) version="${2}"; shift 2 ;;
-		codename) codename="${2}"; shift 2 ;;
+		distribution) distribution="${2}"; shift ;;
+		version) version="${2}"; shift ;;
+		codename) codename="${2}"; shift ;;
+		netdata-all)
+			PACKAGES_NETDATA=1
+			PACKAGES_NETDATA_NODEJS=1
+			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			;;
+		netdata)
+			PACKAGES_NETDATA=1
+			PACKAGES_NETDATA_PYTHON=1
+			;;
+		mysql|netdata-mysql|netdata-python-mysql)
+			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			;;
+		nodejs|netdata-nodejs)
+			PACKAGES_NETDATA_NODEJS=1
+			;;
+		firehol)
+			PACKAGES_IPRANGE=1
+			PACKAGES_FIREHOL=1
+			PACKAGES_FIREQOS=1
+			PACKAGES_UPDATE_IPSETS=1
+			;;
+		demo|all)
+			PACKAGES_NETDATA=1
+			PACKAGES_NETDATA_NODEJS=1
+			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			PACKAGES_DEBUG=1
+			PACKAGES_IPRANGE=1
+			PACKAGES_FIREHOL=1
+			PACKAGES_FIREQOS=1
+			PACKAGES_UPDATE_IPSETS=1
+			PACKAGES_NGINX=1
+			;;
 		installer)
 			check_package_manager "${2}" || exit 1
-			shift 2
+			shift
 			;;
 		help|-h|--help)
 			echo >&2 "${ME} [distribution gentoo|debian|redhat|ubuntu|fedora|centos [version 1.2.3] [codename NAME]] [installer apt-get|yum|dnf|emerge] "
@@ -341,6 +386,7 @@ do
 			;;
 		*) echo >&2 "Cannot understand option '${1}'"; exit 1 ;;
 	esac
+	shift
 done
 
 if [ -z "${package_installer}" -o -z "${package_tree}" ]
@@ -370,9 +416,9 @@ packages() {
 	# -------------------------------------------------------------------------
 	# basic build environment
 
+	require_cmd git      || echo git
 	require_cmd gcc      || echo gcc
 	require_cmd make     || echo make
-	require_cmd git      || echo git
 	require_cmd autoconf || echo autoconf
 	require_cmd autogen  || echo autogen
 	require_cmd automake || echo automake
@@ -391,114 +437,151 @@ packages() {
 	# -------------------------------------------------------------------------
 	# debugging tools for development
 
-	require_cmd gdb        || echo gdb
-	require_cmd valgrind   || echo valgrind
-	require_cmd traceroute || echo traceroute
-	require_cmd tcpdump    || echo tcpdump
-	require_cmd screen     || echo screen
+	if [ ${PACKAGES_DEBUG} -ne 0 ]
+		then
+		if [ ${PACKAGES_NETDATA} -ne 0 ]
+			then
+			require_cmd gdb        || echo gdb
+			require_cmd valgrind   || echo valgrind
+		fi
+		require_cmd traceroute || echo traceroute
+		require_cmd tcpdump    || echo tcpdump
+		require_cmd screen     || echo screen
+	fi
 
 	# -------------------------------------------------------------------------
 	# common command line tools
 
-	require_cmd curl || echo curl	# web client
-	require_cmd jq   || echo jq		# JSON parsing
+	# require_cmd curl || echo curl	# web client
+	# require_cmd jq   || echo jq	# JSON parsing
 
-	case "${tree}" in
-		debian|gentoo|arch)
-				require_cmd nc || echo netcat # network swiss army knife
-				;;
-		rhel|centos)
-				require_cmd nc || echo nmap-ncat
-				;;
-		*)		echo >&2 "Unknown package tree '${tree}'."
-				;;
-	esac
+	if [ ${PACKAGES_NETDATA} -ne 0 ]
+		then
+		case "${tree}" in
+			debian|gentoo|arch)
+					require_cmd nc || echo netcat # network swiss army knife
+					;;
+			rhel|centos)
+					require_cmd nc || echo nmap-ncat
+					;;
+			*)		echo >&2 "Unknown package tree '${tree}'."
+					;;
+		esac
+	fi
 
 	# -------------------------------------------------------------------------
 	# firehol/fireqos/update-ipsets command line tools
 
-	require_cmd iptables || echo iptables
-	require_cmd ipset    || echo ipset
-	require_cmd zip      || echo zip	# for update-ipsets
-	require_cmd funzip   || echo unzip	# for update-ipsets
+	if [ ${PACKAGES_FIREHOL} -ne 0 ]
+		then
+		require_cmd iptables || echo iptables
+		require_cmd ipset    || echo ipset
+		case "${tree}" in
+			centos) 	# FIXME: centos does not have ulogd
+					;;
+			*)		require_cmd ulogd ulogd2 || echo ulogd
+					;;
+		esac
+	fi
 
-	case "${tree}" in
-		centos) # FIXME: centos does not have ulogd
-				;;
+	if [ ${PACKAGES_UPDATE_IPSETS} -ne 0 ]
+		then
+		require_cmd ipset    || echo ipset
+		require_cmd zip      || echo zip	# for update-ipsets
+		require_cmd funzip   || echo unzip	# for update-ipsets
+	fi
 
-		*)		require_cmd ulogd ulogd2 || echo ulogd
-				;;
-	esac
 
 	# -------------------------------------------------------------------------
 	# netdata libraries
 
-	case "${tree}" in
-		debian)		echo zlib1g-dev
-				echo uuid-dev
-				echo libmnl-dev
-				;;
+	if [ ${PACKAGES_NETDATA} -ne 0 ]
+		then
+		case "${tree}" in
+			debian)		echo zlib1g-dev
+					echo uuid-dev
+					echo libmnl-dev
+					;;
 
-		rhel|centos)
-				echo zlib-devel
-				echo uuid-devel
-				echo libmnl-devel
-				;;
+			rhel|centos)
+					echo zlib-devel
+					echo uuid-devel
+					echo libmnl-devel
+					;;
 
-		gentoo)		echo sys-libs/zlib
-				echo sys-apps/util-linux
-				echo net-libs/libmnl
-				;;
+			gentoo)		echo sys-libs/zlib
+					echo sys-apps/util-linux
+					echo net-libs/libmnl
+					;;
 
-		arch)		echo zlib
-				echo util-linux
-				echo libmnl
-				;;
+			arch)		echo zlib
+					echo util-linux
+					echo libmnl
+					;;
 
-		*)		echo >&2 "Unknown package tree '${tree}'."
-				;;
-	esac
+			*)		echo >&2 "Unknown package tree '${tree}'."
+					;;
+		esac
+	fi
 
 	# -------------------------------------------------------------------------
 	# scripting interpreters for netdata plugins
 
-	require_cmd nodejs node js || echo nodejs
-	require_cmd python || echo python
+	if [ ${PACKAGES_NETDATA_NODEJS} -ne 0 ]
+		then
+		require_cmd nodejs node js || echo nodejs
+	fi
 
-	case "${tree}" in
-		debian)		# echo python-pip
-				echo python-mysqldb
-				echo python-yaml
-				;;
+	if [ ${PACKAGES_NETDATA_PYTHON} -ne 0 ]
+		then
+		require_cmd python || echo python
 
-		rhel)		# echo python-pip
-				echo python-mysql
-				echo python-yaml
-				;;
+		case "${tree}" in
+			debian|rhel|centos|arch)
+					# echo python-pip
+					echo python-yaml
+					;;
 
-		centos)		# echo python-pip
-				echo MySQL-python
-				echo python-yaml
-				;;
+			gentoo) 	# echo dev-python/pip
+					echo dev-python/pyyaml
+					;;
 
-		gentoo) 	# echo dev-python/pip
-				echo dev-python/mysqlclient
-				echo dev-python/pyyaml
-				;;
+			*)		echo >&2 "Unknown package tree '${tree}'."
+					;;
+		esac
 
-		arch)   	# echo python-pip
-				echo mysql-python
-				echo python-yaml
-				;;
+		if [ ${PACKAGES_NETDATA_PYTHON_MYSQL} -ne 0 ]
+			then
+			# nice! everyone has given its own name!
+			case "${tree}" in
+				debian)		echo python-mysqldb
+						;;
 
-		*)		echo >&2 "Unknown package tree '${tree}'."
-				;;
-	esac
+				rhel)		echo python-mysql
+						;;
+
+				centos)		echo MySQL-python
+						;;
+
+				gentoo) 	echo dev-python/mysqlclient
+						;;
+
+				arch)   	echo mysql-python
+						;;
+
+				*)		echo >&2 "Unknown package tree '${tree}'."
+						;;
+			esac
+		fi
+	fi
 
 	# -------------------------------------------------------------------------
 	# applications needed for the netdata demo sites
 
-	echo nginx
+	if [ ${PACKAGES_NGINX} -ne 0 ]
+		then
+		require_cmd nginx || echo nginx
+	fi
 }
 
 DRYRUN=0
