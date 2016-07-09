@@ -460,6 +460,13 @@ declare -A pkg_autoconf=(
 	['default']="autoconf"
 	)
 
+# required to compile netdata with --enable-sse
+# https://github.com/firehol/netdata/pull/450
+declare -A pkg_autoconf_archive=(
+	 ['gentoo']="sys-devel/autoconf-archive"
+	['default']="autoconf-archive"
+	)
+
 declare -A pkg_autogen=(
 	 ['gentoo']="sys-devel/autogen"
 	['default']="autogen"
@@ -675,8 +682,8 @@ suitable_package() {
 
 	# echo >&2 "Searching for ${package}..."
 
-	eval "p=\${pkg_${package}['${distribution}-${version}']}"
-	[ -z "${p}" ] && eval "p=\${pkg_${package}['${distribution}']}"
+	eval "p=\${pkg_${package}['${distribution,,}-${version,,}']}"
+	[ -z "${p}" ] && eval "p=\${pkg_${package}['${distribution,,}']}"
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['${tree}-${version}']}"
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['${tree}']}"
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['default']}"
@@ -709,6 +716,7 @@ packages() {
 	require_cmd gcc        || suitable_package gcc
 	require_cmd make       || suitable_package make
 	require_cmd autoconf   || suitable_package autoconf
+	suitable_package autoconf-archive
 	require_cmd autogen    || suitable_package autogen
 	require_cmd automake   || suitable_package automake
 	require_cmd pkg-config || suitable_package pkg-config
