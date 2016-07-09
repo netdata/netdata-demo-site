@@ -503,7 +503,7 @@ declare -A pkg_iproute2=(
 
 	# exceptions
 	['ubuntu-12.04']="iproute"
-	['fedora-22']="iproute"
+	   ['fedora-22']="iproute"
 	)
 
 declare -A pkg_ipset=(
@@ -852,6 +852,9 @@ install_yum() {
 }
 
 install_dnf() {
+	# --setopt=strict=0 allows dnf to proceed
+	# installing whatever is available
+	# even if a package is not found
 	run dnf install "${@}"
 }
 
