@@ -497,11 +497,13 @@ declare -A pkg_gdb=(
 	['default']="gdb"
 	)
 
-# ubuntu 12.04 LTS has iproute, not iproute2
 declare -A pkg_iproute2=(
-	['ubuntu-12.04']="iproute"
 	 ['gentoo']="sys-apps/iproute2"
 	['default']="iproute2"
+
+	# exceptions
+	['ubuntu-12.04']="iproute"
+	['fedora-22']="iproute"
 	)
 
 declare -A pkg_ipset=(
@@ -636,8 +638,9 @@ declare -A pkg_python3_mysqldb=(
 	   ['rhel']="ERROR/I don't know how to install mysql client for python3"
 	   ['suse']="ERROR/I don't know how to install mysql client for python3"
 	['default']="ERROR/I don't know how to install mysql client for python3"
-	
-	['ubuntu-12.04']="ERROR/python3 does not have mysql client here"
+
+	# exceptions
+	['ubuntu-12.04']="ERROR/I don't know how to install python3-mysqldb here"
 	)
 
 declare -A pkg_python3=(
