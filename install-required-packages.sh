@@ -31,7 +31,7 @@ distribution=
 version=
 codename=
 package_installer=
-package_tree=
+tree=
 detection=
 NAME=
 ID=
@@ -49,19 +49,20 @@ ${ME} [--dont-wait] \\
 Supported distributions (DD):
 
     - arch           (all Arch Linux derivatives)
+    - centos         (all CentOS derivatives)
     - gentoo         (all Gentoo Linux derivatives)
     - debian, ubuntu (all Debian and Ubuntu derivatives)
     - redhat, fedora (all Red Hat and Fedora derivatives)
-    - centos         (all CentOS derivatives)
+    - suse, opensuse (all SuSe and openSuSe derivatives)
 
 Supported installers (IN):
 
     - apt-get        all Debian / Ubuntu Linux derivatives
-    - yum            all Red Hat / Fedora / CentOS Linux derivatives
     - dnf            newer Red Hat / Fedora Linux
-    - zypper         all SuSe Linux derivatives
     - emerge         all Gentoo Linux derivatives
     - pacman         all Arch Linux derivatives
+    - yum            all Red Hat / Fedora / CentOS Linux derivatives
+    - zypper         all SuSe Linux derivatives
 
 Supported packages (you can append many of them):
 
@@ -301,7 +302,7 @@ detect_package_manager_from_distribution() {
 	case "${1,,}" in
 		arch*)
 			package_installer="install_pacman"
-			package_tree="arch"
+			tree="arch"
 			if [ -z "${pacman}" ]
 				then
 				echo >&2 "command 'pacman' is required to install packages on a '${distribution} ${version}' system."
@@ -311,7 +312,7 @@ detect_package_manager_from_distribution() {
 
 		gentoo*)
 			package_installer="install_emerge"
-			package_tree="gentoo"
+			tree="gentoo"
 			if [ -z "${emerge}" ]
 				then
 				echo >&2 "command 'emerge' is required to install packages on a '${distribution} ${version}' system."
@@ -321,7 +322,7 @@ detect_package_manager_from_distribution() {
 
 		debian*|ubuntu*)
 			package_installer="install_apt_get"
-			package_tree="debian"
+			tree="debian"
 			if [ -z "${apt_get}" ]
 				then
 				echo >&2 "command 'apt-get' is required to install packages on a '${distribution} ${version}' system."
@@ -333,7 +334,7 @@ detect_package_manager_from_distribution() {
 			echo >&2 "You should have EPEL enabled to install all the prerequisites."
 			echo >&2 "Check: http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/"
 			package_installer="install_yum"
-			package_tree="centos"
+			tree="centos"
 			if [ -z "${yum}" ]
 				then
 				echo >&2 "command 'yum' is required to install packages on a '${distribution} ${version}' system."
@@ -343,7 +344,7 @@ detect_package_manager_from_distribution() {
 
 		fedora*|redhat*|red\ hat*|rhel*)
 			package_installer=
-			package_tree="rhel"
+			tree="rhel"
 			[ ! -z "${yum}" ] && package_installer="install_yum"
 			[ ! -z "${dnf}" ] && package_installer="install_dnf"
 			if [ -z "${package_installer}" ]
@@ -355,7 +356,7 @@ detect_package_manager_from_distribution() {
 
 		suse*|opensuse*)
 			package_installer="install_zypper"
-			package_tree="suse"
+			tree="suse"
 			if [ -z "${zypper}" ]
 				then
 				echo >&2 "command 'zypper' is required to install packages on a '${distribution} ${version}' system."
@@ -380,7 +381,7 @@ check_package_manager() {
 		apt-get)
 			[ -z "${apt_get}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_apt_get"
-			package_tree="debian"
+			tree="debian"
 			detection="user-input"
 			return 0
 			;;
@@ -388,7 +389,7 @@ check_package_manager() {
 		dnf)
 			[ -z "${dnf}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_dnf"
-			package_tree="rhel"
+			tree="rhel"
 			detection="user-input"
 			return 0
 			;;
@@ -396,7 +397,7 @@ check_package_manager() {
 		emerge)
 			[ -z "${emerge}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_emerge"
-			package_tree="gentoo"
+			tree="gentoo"
 			detection="user-input"
 			return 0
 			;;
@@ -404,7 +405,7 @@ check_package_manager() {
 		pacman)
 			[ -z "${pacman}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_pacman"
-			package_tree="arch"
+			tree="arch"
 			detection="user-input"
 			return 0
 			;;
@@ -412,7 +413,7 @@ check_package_manager() {
 		zypper)
 			[ -z "${zypper}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_zypper"
-			package_tree="suse"
+			tree="suse"
 			detection="user-input"
 			return 0
 			;;
@@ -422,9 +423,9 @@ check_package_manager() {
 			package_installer="install_yum"
 			if [ "${distribution}" = "centos" ]
 				then
-				package_tree="centos"
+				tree="centos"
 			else
-				package_tree="rhel"
+				tree="rhel"
 			fi
 			detection="user-input"
 			return 0
@@ -454,47 +455,278 @@ require_cmd() {
 	return 1
 }
 
+declare -A pkg_autoconf=(
+	 ['gentoo']="sys-devel/autoconf"
+	['default']="autoconf"
+	)
+
+declare -A pkg_autogen=(
+	 ['gentoo']="sys-devel/autogen"
+	['default']="autogen"
+	)
+
+declare -A pkg_automake=(
+	 ['gentoo']="sys-devel/automake"
+	['default']="automake"
+	)
+
+declare -A pkg_curl=(
+	 ['gentoo']="net-misc/curl"
+	['default']="curl"
+	)
+
+declare -A pkg_git=(
+	 ['gentoo']="dev-vcs/git"
+	['default']="git"
+	)
+
+declare -A pkg_gcc=(
+	 ['gentoo']="sys-devel/gcc"
+	['default']="gcc"
+	)
+
+declare -A pkg_gdb=(
+	 ['gentoo']="sys-devel/gdb"
+	['default']="gdb"
+	)
+
+declare -A pkg_iproute2=(
+	 ['gentoo']="sys-apps/iproute2"
+	['default']="iproute2"
+	)
+
+declare -A pkg_ipset=(
+	 ['gentoo']="net-firewall/ipset"
+	['default']="ipset"
+	)
+
+declare -A pkg_jq=(
+	 ['gentoo']="app-misc/jq"
+	['default']="jq"
+	)
+
+declare -A pkg_iptables=(
+	 ['gentoo']="net-firewall/iptables"
+	['default']="iptables"
+	)
+
+declare -A pkg_libz_dev=(
+	   ['arch']="zlib"
+	 ['centos']="zlib-devel"
+	 ['debian']="zlib1g-dev"
+	 ['gentoo']="sys-libs/zlib"
+	   ['rhel']="zlib-devel"
+	   ['suse']="zlib-devel"
+	['default']=""
+	)
+
+declare -A pkg_libuuid_dev=(
+	   ['arch']="util-linux"
+	 ['centos']="uuid-devel"
+	 ['debian']="uuid-dev"
+	 ['gentoo']="sys-apps/util-linux"
+	   ['rhel']="uuid-devel"
+	   ['suse']="libuuid-devel"
+	['default']=""
+	)
+
+declare -A pkg_libmnl_dev=(
+	   ['arch']="libmnl"
+	 ['centos']="libmnl-devel"
+	 ['debian']="libmnl-dev"
+	 ['gentoo']="net-libs/libmnl"
+	   ['rhel']="libmnl-devel"
+	   ['suse']="libmnl0"
+	['default']=""
+	)
+
+declare -A pkg_make=(
+	 ['gentoo']="sys-devel/make"
+	['default']="make"
+	)
+
+declare -A pkg_netcat=(
+	   ['arch']="netcat"
+	 ['centos']="nmap-ncat"
+	 ['debian']="netcat"
+	 ['gentoo']="net-analyzer/netcat"
+	   ['rhel']="nmap-ncat"
+	   ['suse']="netcat-openbsd"
+	['default']="netcat"
+	)
+
+declare -A pkg_nginx=(
+	 ['gentoo']="www-servers/nginx"
+	['default']="nginx"
+	)
+
+declare -A pkg_nodejs=(
+	 ['gentoo']="net-libs/nodejs"
+	['default']="nodejs"
+	)
+
+declare -A pkg_pkg_config=(
+	   ['arch']="pkgconfig"
+	 ['centos']="pkgconfig"
+	 ['debian']="pkg-config"
+	 ['gentoo']="dev-util/pkgconfig"
+	   ['rhel']="pkgconfig"
+	   ['suse']="pkg-config"
+	['default']="pkg-config"
+	)
+
+declare -A pkg_python=(
+	 ['gentoo']="dev-lang/python"
+	['default']="python"
+	)
+
+declare -A pkg_python_mysqldb=(
+	   ['arch']="mysql-python"
+	 ['centos']="MySQL-python"
+	 ['debian']="python-mysqldb"
+	 ['gentoo']="dev-python/mysqlclient"
+	   ['rhel']="python-mysql"
+	   ['suse']="python-MySQL-python"
+	['default']="python-mysql"
+	)
+
+declare -A pkg_python_pip=(
+	 ['gentoo']="dev-python/pip"
+	['default']="python-pip"
+	)
+
+declare -A pkg_python_yaml=(
+	 ['gentoo']="dev-python/pyyaml"
+	   ['suse']="python-PyYAML"
+	['default']="python-yaml"
+	)
+
+declare -A pkg_python3_pip=(
+	   ['arch']="python-pip"
+	 ['centos']="ERROR/I don't know how to install python3-pip here"
+	 ['gentoo']="dev-python/pip"
+	   ['rhel']="ERROR/I don't know how to install python3-pip here"
+	['default']="python3-pip"
+	)
+
+declare -A pkg_python3_yaml=(
+	   ['arch']="python-yaml"
+	 ['centos']="ERROR/I don't know how to install python3-yaml here"
+	 ['debian']="python3-yaml"
+	 ['gentoo']="dev-python/pyyaml"
+	   ['rhel']="ERROR/I don't know how to install python3-yaml here"
+	   ['suse']="python3-PyYAML"
+	['default']="python3-yaml"
+	)
+
+declare -A pkg_python3_mysqldb=(
+	   ['arch']="ERROR/I don't know how to install mysql client for python3"
+	 ['centos']="ERROR/I don't know how to install mysql client for python3"
+	 ['debian']="python3-mysql.connector"
+	 ['gentoo']="dev-python/mysqlclient"
+	   ['rhel']="ERROR/I don't know how to install mysql client for python3"
+	   ['suse']="ERROR/I don't know how to install mysql client for python3"
+	['default']="ERROR/I don't know how to install mysql client for python3"
+	)
+
+declare -A pkg_python3=(
+	 ['gentoo']="dev-lang/python"
+	['default']="python3"
+	)
+
+declare -A pkg_screen=(
+	 ['gentoo']="app-misc/screen"
+	['default']="screen"
+	)
+
+declare -A pkg_tcpdump=(
+	 ['gentoo']="net-analyzer/tcpdump"
+	['default']="tcpdump"
+	)
+
+declare -A pkg_traceroute=(
+	 ['gentoo']="net-analyzer/traceroute"
+	['default']="traceroute"
+	)
+
+declare -A pkg_valgrind=(
+	 ['gentoo']="dev-util/valgrind"
+	['default']="valgrind"
+	)
+
+declare -A pkg_ulogd=(
+	 ['centos']="ERROR/I don't know how to install ulogd here"
+	 ['gentoo']="app-admin/ulogd"
+	['default']="ulogd"
+	)
+
+declare -A pkg_unzip=(
+	 ['gentoo']="app-arch/unzip"
+	['default']="unzip"
+	)
+
+declare -A pkg_zip=(
+	 ['gentoo']="app-arch/zip"
+	['default']="zip"
+	)
+
+suitable_package() {
+	local package="${1//-/_}" p=
+
+	# echo >&2 "Searching for ${package}..."
+
+	eval "p=\${pkg_${package}['${distribution}-${version}']}"
+	[ -z "${p}" ] && eval "p=\${pkg_${package}['${distribution}']}"
+	[ -z "${p}" ] && eval "p=\${pkg_${package}['${tree}-${version}']}"
+	[ -z "${p}" ] && eval "p=\${pkg_${package}['${tree}']}"
+	[ -z "${p}" ] && eval "p=\${pkg_${package}['default']}"
+
+	if [[ "${p}" =~ ^(ERROR|WARNING)/.* ]]
+		then
+		echo >&2 
+		echo >&2 "${p}"
+		echo >&2 
+		return 1
+	elif [ -z "${p}" ]
+		then
+		echo >&2 
+		echo >&2 "WARNING: I don't know how to install ${package} in ${tree}."
+		echo >&2 
+		return 1
+	else
+		echo "${p}"
+		return 0
+	fi
+}
+
 packages() {
 	# detect the packages we need to install on this system
-
-	local tree="${1}"
 
 	# -------------------------------------------------------------------------
 	# basic build environment
 
-	require_cmd git      || echo git
-	require_cmd gcc      || echo gcc
-	require_cmd make     || echo make
-	require_cmd autoconf || echo autoconf
-	require_cmd autogen  || echo autogen
-	require_cmd automake || echo automake
-
-	# pkg-config
-	case "${tree}" in
-		debian|gentoo|arch|suse)
-				require_cmd pkg-config || echo pkg-config
-				;;
-		rhel|centos)
-				require_cmd pkg-config || echo pkgconfig
-				;;
-		*)
-				echo >&2 "ERROR: Unknown package tree '${tree}'."
-				;;
-	esac
+	require_cmd git        || suitable_package git
+	require_cmd gcc        || suitable_package gcc
+	require_cmd make       || suitable_package make
+	require_cmd autoconf   || suitable_package autoconf
+	require_cmd autogen    || suitable_package autogen
+	require_cmd automake   || suitable_package automake
+	require_cmd pkg-config || suitable_package pkg-config
 
 	# -------------------------------------------------------------------------
 	# debugging tools for development
 
 	if [ ${PACKAGES_DEBUG} -ne 0 ]
 		then
+		require_cmd traceroute || suitable_package traceroute
+		require_cmd tcpdump    || suitable_package tcpdump
+		require_cmd screen     || suitable_package screen
+
 		if [ ${PACKAGES_NETDATA} -ne 0 ]
 			then
-			require_cmd gdb        || echo gdb
-			require_cmd valgrind   || echo valgrind
+			require_cmd gdb        || suitable_package gdb
+			require_cmd valgrind   || suitable_package valgrind
 		fi
-		require_cmd traceroute || echo traceroute
-		require_cmd tcpdump    || echo tcpdump
-		require_cmd screen     || echo screen
 	fi
 
 	# -------------------------------------------------------------------------
@@ -502,26 +734,8 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA} -ne 0 ]
 		then
-		require_cmd curl || echo curl	# web client
-
-		# netcat - network swiss army knife
-		case "${tree}" in
-			gentoo)
-					require_cmd nc || echo net-analyzer/netcat
-					;;
-			debian|arch)
-					require_cmd nc || echo netcat
-					;;
-			rhel|centos)
-					require_cmd nc || echo nmap-ncat
-					;;
-			suse)
-					require_cmd nc || echo netcat-openbsd
-					;;
-			*)	
-					echo >&2 "ERROR: Unknown package tree '${tree}'."
-					;;
-		esac
+		require_cmd curl || suitable_package curl
+		require_cmd nc   || suitable_package netcat
 	fi
 
 	# -------------------------------------------------------------------------
@@ -529,28 +743,21 @@ packages() {
 
 	if [ ${PACKAGES_FIREQOS} -ne 0 ]
 		then
-		require_cmd ip || echo iproute2
+		require_cmd ip || suitable_package iproute2
 	fi
 
 	if [ ${PACKAGES_FIREHOL} -ne 0 ]
 		then
-		require_cmd iptables || echo iptables
-		require_cmd ipset    || echo ipset
-		case "${tree}" in
-			centos)
-					echo >&2 "ERROR: I don't know how to install ulogd on CentOS."
-					;;
-			*)	
-					require_cmd ulogd ulogd2 || echo ulogd
-					;;
-		esac
+		require_cmd iptables     || suitable_package iptables
+		require_cmd ipset        || suitable_package ipset
+		require_cmd ulogd ulogd2 || suitable_package ulogd
 	fi
 
 	if [ ${PACKAGES_UPDATE_IPSETS} -ne 0 ]
 		then
-		require_cmd ipset    || echo ipset
-		require_cmd zip      || echo zip
-		require_cmd funzip   || echo unzip
+		require_cmd ipset    || suitable_package ipset
+		require_cmd zip      || suitable_package zip
+		require_cmd funzip   || suitable_package unzip
 	fi
 
 	# -------------------------------------------------------------------------
@@ -558,40 +765,9 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA} -ne 0 ]
 		then
-		case "${tree}" in
-			debian)
-					echo zlib1g-dev
-					echo uuid-dev
-					echo libmnl-dev
-					;;
-
-			rhel|centos)
-					echo zlib-devel
-					echo uuid-devel
-					echo libmnl-devel
-					;;
-
-			gentoo)	
-					echo sys-libs/zlib
-					echo sys-apps/util-linux
-					echo net-libs/libmnl
-					;;
-
-			arch)	
-					echo zlib
-					echo util-linux
-					echo libmnl
-					;;
-
-			suse)	
-					echo zlib-devel
-					echo libuuid-devel
-					echo libmnl0 # or libmnl-devel ?
-					;;
-
-			*)		echo >&2 "ERROR: Unknown package tree '${tree}'."
-					;;
-		esac
+		suitable_package libz-dev
+		suitable_package libuuid-dev
+		suitable_package libmnl-dev
 	fi
 
 	# -------------------------------------------------------------------------
@@ -599,7 +775,7 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA_NODEJS} -ne 0 ]
 		then
-		require_cmd nodejs node js || echo nodejs
+		require_cmd nodejs node js || suitable_package nodejs
 	fi
 
 	# -------------------------------------------------------------------------
@@ -607,59 +783,12 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA_PYTHON} -ne 0 ]
 		then
-		require_cmd python || echo python
+		require_cmd python || suitable_package python
 
-		case "${tree}" in
-			debian|rhel|centos|arch)
-					echo python-yaml
-					;;
+		suitable_package python-yaml
+		# suitable_package python-pip
 
-			gentoo) 
-					echo dev-python/pyyaml
-					;;
-
-			suse)
-					echo python-PyYAML
-					;;
-
-			*)
-					echo >&2 "ERROR: Unknown package tree '${tree}'."
-					;;
-		esac
-
-		if [ ${PACKAGES_NETDATA_PYTHON_MYSQL} -ne 0 ]
-			then
-			# nice! everyone has given its own name!
-			case "${tree}" in
-				debian)	
-						echo python-mysqldb
-						;;
-
-				rhel)	
-						echo python-mysql
-						;;
-
-				centos)	
-						echo MySQL-python
-						;;
-
-				gentoo) 
-						echo dev-python/mysqlclient
-						;;
-
-				arch)  
-						echo mysql-python
-						;;
-
-				suse)  
-						echo python-MySQL-python
-						;;
-
-				*)
-						echo >&2 "ERROR: Unknown package tree '${tree}'."
-						;;
-			esac
-		fi
+		[ ${PACKAGES_NETDATA_PYTHON_MYSQL} -ne 0 ] && suitable_package python-mysqldb
 	fi
 
 	# -------------------------------------------------------------------------
@@ -667,64 +796,12 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA_PYTHON3} -ne 0 ]
 		then
-		require_cmd python3 || case "${tree}" in
-			gentoo)
-					echo python
-					;;
-			
-			debian|suse|rhel|centos|arch)
-					echo python3
-					;;
+		require_cmd python3 || suitable_package python3
 
-			*)		echo >&2 "ERROR: Unknown package tree '${tree}'."
-					;;
-		esac
+		suitable_package python3-yaml
+		# suitable_package python3-pip
 
-		case "${tree}" in
-			arch)
-					echo python-yaml
-					;;
-
-			debian)
-					echo python3-yaml
-					;;
-
-			gentoo) 
-					echo dev-python/pyyaml
-					;;
-
-			suse|rhel|centos)
-					# FIXME
-					echo >&2 "ERROR: I don't know how to install pyyaml for python3"
-					;;
-
-			*)		echo >&2 "ERROR: Unknown package tree '${tree}'."
-					;;
-		esac
-
-		if [ ${PACKAGES_NETDATA_PYTHON_MYSQL} -ne 0 ]
-			then
-			# nice! everyone has given its own name!
-			case "${tree}" in
-				debian)	
-						# FIXME
-						# will this do?
-						echo python3-mysql.connector
-						;;
-
-				gentoo) 
-						echo dev-python/mysqlclient
-						;;
-
-				suse|rhel|centos|arch)
-						# FIXME
-						echo >&2 "ERROR: I don't know how to install mysql client for python3"
-						;;
-
-				*)		echo >&2 "ERROR: Unknown package tree '${tree}'."
-						;;
-			esac
-		fi
+		[ ${PACKAGES_NETDATA_PYTHON_MYSQL} -ne 0 ] && suitable_package python3-mysqldb
 	fi
 
 	# -------------------------------------------------------------------------
@@ -732,8 +809,8 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA_DEMO_SITE} -ne 0 ]
 		then
-		require_cmd jq    || echo jq		# JSON parsing
-		require_cmd nginx || echo nginx
+		require_cmd jq    || suitable_package jq
+		require_cmd nginx || suitable_package nginx
 	fi
 }
 
@@ -918,7 +995,7 @@ do
 	shift
 done
 
-if [ -z "${package_installer}" -o -z "${package_tree}" ]
+if [ -z "${package_installer}" -o -z "${tree}" ]
 	then
 	if [ -z "${distribution}" ]
 		then
@@ -958,7 +1035,7 @@ Distribution    : ${distribution}
 Version         : ${version}
 Codename        : ${codename}
 Package Manager : ${package_installer}
-Packages Tree   : ${package_tree}
+Packages Tree   : ${tree}
 Detection Method: ${detection}
 Default Python v: ${pv} $([ ${pv} -eq 2 -a ${PACKAGES_NETDATA_PYTHON3} -eq 1 ] && echo "(will install python3 too)")
 EOF
@@ -971,7 +1048,7 @@ The following command will be run:
 
 EOF
 
-PACKAGES_TO_INSTALL=( $(packages ${package_tree} | sort -u) )
+PACKAGES_TO_INSTALL=( $(packages | sort -u) )
 
 if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]
 	then
