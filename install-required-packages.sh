@@ -24,10 +24,7 @@ apt_get=$(which apt-get 2>/dev/null || command apt-get 2>/dev/null)
 yum=$(which yum 2>/dev/null || command yum 2>/dev/null)
 dnf=$(which dnf 2>/dev/null || command dnf 2>/dev/null)
 pacman=$(which pacman 2>/dev/null || command pacman 2>/dev/null)
-
-# FIXME add
-# 1. add zypper (opensuse)
-# 2. add rpm (who uses it now?)
+zypper=$(which zypper 2>/dev/null || command zypper 2>/dev/null)
 
 distribution=
 version=
@@ -58,10 +55,12 @@ Supported distributions (DD):
 
 Supported installers (IN):
 
-    - apt-get        all Debian / Ubuntu derivatives
-    - yum            all Red Hat / Fedora / CentOS derivatives
-    - dnf            newer Red Hat / Fedora
-    - emerge         all Gentoo derivatives
+    - apt-get        all Debian / Ubuntu Linux derivatives
+    - yum            all Red Hat / Fedora / CentOS Linux derivatives
+    - dnf            newer Red Hat / Fedora Linux
+    - zypper         all SuSe Linux derivatives
+    - emerge         all Gentoo Linux derivatives
+    - pacman         all Arch Linux derivatives
 
 Supported packages (you can append many of them):
 
@@ -109,7 +108,7 @@ release2lsb_release() {
 	echo >&2 "Loading ${file} ..."
 
 
-	x=$(<"${file}")
+	x="$(cat "${file}" | grep -v "^$" | head -n 1)"
 
 	if [[ "${x}" =~ ^.*[[:space:]]+Linux[[:space:]]+release[[:space:]]+.*[[:space:]]+(.*)[[:space:]]*$ ]]
 		then
@@ -152,7 +151,7 @@ get_os_release() {
 		for x in "${ID}" ${ID_LIKE}
 		do
 			case "${x,,}" in
-				arch|centos|debian|fedora|gentoo|rhel|ubuntu)
+				arch|centos|debian|fedora|gentoo|rhel|ubuntu|suse)
 					distribution="${x}"
 					version="${VERSION_ID}"
 					codename="${VERSION}"
@@ -227,6 +226,11 @@ find_etc_any_release() {
 		release2lsb_release "/etc/redhat-release" && return 0
 	fi
 
+	if [ -f "/etc/SuSe-release" ]
+		then
+		release2lsb_release "/etc/SuSe-release" && return 0
+	fi
+
 	return 1
 }
 
@@ -254,6 +258,7 @@ user_picks_distribution() {
 	[ ! -z "${apt_get}" ] && echo >&2 " - Debian/Ubuntu based (installer is: apt-get)" && opts="${opts} apt-get"
 	[ ! -z "${yum}"     ] && echo >&2 " - Redhat/Fedora/Centos based (installer is: yum)" && opts="${opts} yum"
 	[ ! -z "${dnf}"     ] && echo >&2 " - Redhat/Fedora/Centos based (installer is: dnf)" && opts="${opts} dnf"
+	[ ! -z "${zypper}"  ] && echo >&2 " - SuSe based (installer is: zypper)" && opts="${opts} zypper"
 	[ ! -z "${pacman}"  ] && echo >&2 " - Arch Linux based (installer is: pacman)" && opts="${opts} pacman"
 	[ ! -z "${emerge}"  ] && echo >&2 " - Gentoo based (installer is: emerge)" && opts="${opts} emerge"
 	echo >&2
@@ -343,6 +348,16 @@ detect_package_manager_from_distribution() {
 			fi
 			;;
 
+		suse*|opensuse*)
+			package_installer="install_zypper"
+			package_tree="suse"
+			if [ -z "${zypper}" ]
+				then
+				echo >&2 "command 'zypper' is required to install packages on a '${distribution} ${version}' system."
+				exit 1
+			fi
+			;;
+
 		*)
 			# oops! unknown system
 			user_picks_distribution
@@ -389,6 +404,14 @@ check_package_manager() {
 			return 0
 			;;
 
+		zypper)
+			[ -z "${zypper}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_zypper"
+			package_tree="suse"
+			detection="user-input"
+			return 0
+			;;
+
 		yum)
 			[ -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_yum"
@@ -414,6 +437,8 @@ require_cmd() {
 	# are present on this system
 	# If any of them is available, it returns 0
 	# otherwise 1
+
+	[ ${IGNORE_INSTALLED} -eq 1 ] && return 1
 
 	while [ ! -z "${1}" ]
 	do
@@ -441,7 +466,7 @@ packages() {
 
 	# pkg-config
 	case "${tree}" in
-		debian|gentoo|arch)
+		debian|gentoo|arch|suse)
 				require_cmd pkg-config || echo pkg-config
 				;;
 		rhel|centos)
@@ -473,12 +498,19 @@ packages() {
 		then
 		require_cmd curl || echo curl	# web client
 
+		# netcat - network swiss army knife
 		case "${tree}" in
-			debian|gentoo|arch)
-					require_cmd nc || echo netcat # network swiss army knife
+			gentoo)
+					require_cmd nc || echo net-analyzer/netcat
+					;;
+			debian|arch)
+					require_cmd nc || echo netcat
 					;;
 			rhel|centos)
 					require_cmd nc || echo nmap-ncat
+					;;
+			suse)
+					require_cmd nc || echo netcat-openbsd
 					;;
 			*)		echo >&2 "Unknown package tree '${tree}'."
 					;;
@@ -518,7 +550,8 @@ packages() {
 	if [ ${PACKAGES_NETDATA} -ne 0 ]
 		then
 		case "${tree}" in
-			debian)		echo zlib1g-dev
+			debian)
+					echo zlib1g-dev
 					echo uuid-dev
 					echo libmnl-dev
 					;;
@@ -529,14 +562,22 @@ packages() {
 					echo libmnl-devel
 					;;
 
-			gentoo)		echo sys-libs/zlib
+			gentoo)	
+					echo sys-libs/zlib
 					echo sys-apps/util-linux
 					echo net-libs/libmnl
 					;;
 
-			arch)		echo zlib
+			arch)	
+					echo zlib
 					echo util-linux
 					echo libmnl
+					;;
+
+			suse)	
+					echo zlib-devel
+					echo libuuid-devel
+					echo libmnl0 # or libmnl-devel ?
 					;;
 
 			*)		echo >&2 "Unknown package tree '${tree}'."
@@ -562,8 +603,14 @@ packages() {
 					echo python-yaml
 					;;
 
-			gentoo) 	# echo dev-python/pip
+			gentoo) 
+					# echo dev-python/pip
 					echo dev-python/pyyaml
+					;;
+
+			suse)
+					# echo python-pip
+					echo python-PyYAML
 					;;
 
 			*)		echo >&2 "Unknown package tree '${tree}'."
@@ -574,19 +621,28 @@ packages() {
 			then
 			# nice! everyone has given its own name!
 			case "${tree}" in
-				debian)		echo python-mysqldb
+				debian)	
+						echo python-mysqldb
 						;;
 
-				rhel)		echo python-mysql
+				rhel)	
+						echo python-mysql
 						;;
 
-				centos)		echo MySQL-python
+				centos)	
+						echo MySQL-python
 						;;
 
-				gentoo) 	echo dev-python/mysqlclient
+				gentoo) 
+						echo dev-python/mysqlclient
 						;;
 
-				arch)   	echo mysql-python
+				arch)  
+						echo mysql-python
+						;;
+
+				suse)  
+						echo python-MySQL-python
 						;;
 
 				*)		echo >&2 "Unknown package tree '${tree}'."
@@ -639,6 +695,38 @@ install_pacman() {
 	run pacman --needed -S "${@}"
 }
 
+install_zypper() {
+	run zypper install "${@}"
+}
+
+install_failed() {
+	cat <<EOF
+
+
+
+We are very sorry!
+
+Installation of required packages failed.
+
+What to do now:
+
+  1. Make sure your system is updated.
+     Most of the times, updating your system will resolve the issue.
+
+  2. If the error message is about a specific package, try removing
+     that package from the command and run it again.
+     Depending on the broken package, you may be able to continue.
+
+  3. Let us know. We may be able to help.
+     Open a github issue with the above log, at:
+
+           https://github.com/firehol/netdata/issues
+
+
+EOF
+	exit 1
+}
+
 if [ -z "${1}" ]
 	then
 	usage
@@ -647,6 +735,7 @@ fi
 
 # parse command line arguments
 DONT_WAIT=0
+IGNORE_INSTALLED=0
 while [ ! -z "${1}" ]
 do
 	case "${1}" in
@@ -670,8 +759,12 @@ do
 			shift
 			;;
 			
-		dont-wait|--dont-wait)
+		dont-wait|--dont-wait|-n)
 			DONT_WAIT=1
+			;;
+
+		ignore-installed|--ignore-installed|-i)
+			IGNORE_INSTALLED=1
 			;;
 
 		netdata-all)
@@ -798,7 +891,7 @@ if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]
 		read -p "Press ENTER to run it > "
 	fi
 
-	${package_installer} "${PACKAGES_TO_INSTALL[@]}" || exit 1
+	${package_installer} "${PACKAGES_TO_INSTALL[@]}" || install_failed
 else
 	echo >&2 "All required packages are already installed"
 fi
