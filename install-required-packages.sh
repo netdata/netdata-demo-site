@@ -681,6 +681,10 @@ packages() {
 		esac
 
 		case "${tree}" in
+			arch)
+					echo python-yaml
+					;;
+
 			debian)
 					echo python3-yaml
 					;;
@@ -689,7 +693,7 @@ packages() {
 					echo dev-python/pyyaml
 					;;
 
-			suse|rhel|centos|arch)
+			suse|rhel|centos)
 					# FIXME
 					echo >&2 "ERROR: I don't know how to install pyyaml for python3"
 					;;
