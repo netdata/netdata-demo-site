@@ -843,31 +843,100 @@ run() {
 	return 0
 }
 
+sudo=
+if [ ${UID} -ne 0 ]
+	then
+	sudo="sudo"
+fi
+
 install_apt_get() {
-	run apt-get install "${@}"
+	# download the latest package info
+	if [ "${DRYRUN}" -eq 1 ]
+		then
+		echo >&2 " >> IMPORTANT << "
+		echo >&2 "    Please make sure your system is up to date"
+		echo >&2 "    by running:  ${sudo} apt-get update  "
+		echo >&2 
+	fi
+
+	# install the required packages
+	run ${sudo} apt-get install "${@}"
 }
 
 install_yum() {
-	run yum install "${@}"
+	# download the latest package info
+	if [ "${DRYRUN}" -eq 1 ]
+		then
+		echo >&2 " >> IMPORTANT << "
+		echo >&2 "    Please make sure your system is up to date"
+		echo >&2 "    by running:  ${sudo} yum update  "
+		echo >&2 
+	fi
+
+	# install the required packages
+	run ${sudo} yum install "${@}"
 }
 
 install_dnf() {
+	# download the latest package info
+	if [ "${DRYRUN}" -eq 1 ]
+		then
+		echo >&2 " >> IMPORTANT << "
+		echo >&2 "    Please make sure your system is up to date"
+		echo >&2 "    by running:  ${sudo} dnf update  "
+		echo >&2 
+	fi
+
+	# install the required packages
 	# --setopt=strict=0 allows dnf to proceed
 	# installing whatever is available
 	# even if a package is not found
-	run dnf install "${@}"
+	run ${sudo} dnf install "${@}"
 }
 
 install_emerge() {
-	run emerge --ask -DNv "${@}"
+	# download the latest package info
+	# we don't do this for emerge - it is very slow
+	# and most users are expected to do this daily
+	# emerge --sync
+	if [ "${DRYRUN}" -eq 1 ]
+		then
+		echo >&2 " >> IMPORTANT << "
+		echo >&2 "    Please make sure your system is up to date"
+		echo >&2 "    by running:  ${sudo} emerge --sync  or  ${sudo} eix-sync  "
+		echo >&2 
+	fi
+
+	# install the required packages
+	run ${sudo} emerge --ask -DNv "${@}"
 }
 
 install_pacman() {
-	run pacman --needed -S "${@}"
+	# download the latest package info
+	if [ "${DRYRUN}" -eq 1 ]
+		then
+		echo >&2 " >> IMPORTANT << "
+		echo >&2 "    Please make sure your system is up to date"
+		echo >&2 "    by running:  ${sudo} pacman -Syu  "
+		echo >&2 
+	fi
+
+	# install the required packages
+	run ${sudo} pacman --needed -S "${@}"
 }
 
 install_zypper() {
-	run zypper install "${@}"
+	# download the latest package info
+	if [ "${DRYRUN}" -eq 1 ]
+		then
+		echo >&2 " >> IMPORTANT << "
+		echo >&2 "    Please make sure your system is up to date"
+		echo >&2 "    by running:  ${sudo} zypper update  "
+		echo >&2 
+	fi
+
+	# install the required packages
+	run ${sudo} zypper install "${@}"
 }
 
 install_failed() {
@@ -1060,8 +1129,6 @@ EOF
 
 cat <<EOF
 
-Please make sure your system is up to date.
-
 The following command will be run:
 
 EOF
@@ -1070,9 +1137,11 @@ PACKAGES_TO_INSTALL=( $(packages | sort -u) )
 
 if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]
 	then
+	echo >&2
 	DRYRUN=1
 	${package_installer} "${PACKAGES_TO_INSTALL[@]}"
 	DRYRUN=0
+	echo >&2
 	echo >&2
 
 	if [ ${DONT_WAIT} -eq 0 ]
