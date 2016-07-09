@@ -9,6 +9,7 @@ ME="${0}"
 PACKAGES_NETDATA=${PACKAGES_NETDATA-0}
 PACKAGES_NETDATA_NODEJS=${PACKAGES_NETDATA_NODEJS-0}
 PACKAGES_NETDATA_PYTHON=${PACKAGES_NETDATA_PYTHON-0}
+PACKAGES_NETDATA_PYTHON3=${PACKAGES_NETDATA_PYTHON3-0}
 PACKAGES_NETDATA_PYTHON_MYSQL=${PACKAGES_NETDATA_PYTHON_MYSQL-0}
 PACKAGES_DEBUG=${PACKAGES_DEBUG-0}
 PACKAGES_IPRANGE=${PACKAGES_IPRANGE-0}
@@ -76,8 +77,12 @@ Supported packages (you can append many of them):
     - python         install python
                      (including python-yaml, for config files parsing)
 
+    - python3        install python3
+                     (including python3-yaml, for config files parsing)
+
     - python-mysql   install MySQLdb
-                     (for monitoring mysql)
+                     (for monitoring mysql, will install python3 version
+                     if python3 is enabled or detected)
 
     - firehol-all    packages required for FireHOL, FireQoS, update-ipsets
     - firehol        packages required for FireHOL
@@ -472,7 +477,8 @@ packages() {
 		rhel|centos)
 				require_cmd pkg-config || echo pkgconfig
 				;;
-		*)		echo >&2 "Unknown package tree '${tree}'."
+		*)
+				echo >&2 "ERROR: Unknown package tree '${tree}'."
 				;;
 	esac
 
@@ -512,7 +518,8 @@ packages() {
 			suse)
 					require_cmd nc || echo netcat-openbsd
 					;;
-			*)		echo >&2 "Unknown package tree '${tree}'."
+			*)	
+					echo >&2 "ERROR: Unknown package tree '${tree}'."
 					;;
 		esac
 	fi
@@ -530,9 +537,11 @@ packages() {
 		require_cmd iptables || echo iptables
 		require_cmd ipset    || echo ipset
 		case "${tree}" in
-			centos) echo >&2 "WARNING: CentOS does not have ulogd."
+			centos)
+					echo >&2 "ERROR: I don't know how to install ulogd on CentOS."
 					;;
-			*)		require_cmd ulogd ulogd2 || echo ulogd
+			*)	
+					require_cmd ulogd ulogd2 || echo ulogd
 					;;
 		esac
 	fi
@@ -580,7 +589,7 @@ packages() {
 					echo libmnl0 # or libmnl-devel ?
 					;;
 
-			*)		echo >&2 "Unknown package tree '${tree}'."
+			*)		echo >&2 "ERROR: Unknown package tree '${tree}'."
 					;;
 		esac
 	fi
@@ -593,27 +602,28 @@ packages() {
 		require_cmd nodejs node js || echo nodejs
 	fi
 
+	# -------------------------------------------------------------------------
+	# python2
+
 	if [ ${PACKAGES_NETDATA_PYTHON} -ne 0 ]
 		then
 		require_cmd python || echo python
 
 		case "${tree}" in
 			debian|rhel|centos|arch)
-					# echo python-pip
 					echo python-yaml
 					;;
 
 			gentoo) 
-					# echo dev-python/pip
 					echo dev-python/pyyaml
 					;;
 
 			suse)
-					# echo python-pip
 					echo python-PyYAML
 					;;
 
-			*)		echo >&2 "Unknown package tree '${tree}'."
+			*)
+					echo >&2 "ERROR: Unknown package tree '${tree}'."
 					;;
 		esac
 
@@ -645,7 +655,69 @@ packages() {
 						echo python-MySQL-python
 						;;
 
-				*)		echo >&2 "Unknown package tree '${tree}'."
+				*)
+						echo >&2 "ERROR: Unknown package tree '${tree}'."
+						;;
+			esac
+		fi
+	fi
+
+	# -------------------------------------------------------------------------
+	# python3
+
+	if [ ${PACKAGES_NETDATA_PYTHON3} -ne 0 ]
+		then
+		require_cmd python3 || case "${tree}" in
+			gentoo)
+					echo python
+					;;
+			
+			debian|suse|rhel|centos|arch)
+					echo python3
+					;;
+
+			*)		echo >&2 "ERROR: Unknown package tree '${tree}'."
+					;;
+		esac
+
+		case "${tree}" in
+			debian)
+					echo python3-yaml
+					;;
+
+			gentoo) 
+					echo dev-python/pyyaml
+					;;
+
+			suse|rhel|centos|arch)
+					# FIXME
+					echo >&2 "ERROR: I don't know how to install pyyaml for python3"
+					;;
+
+			*)		echo >&2 "ERROR: Unknown package tree '${tree}'."
+					;;
+		esac
+
+		if [ ${PACKAGES_NETDATA_PYTHON_MYSQL} -ne 0 ]
+			then
+			# nice! everyone has given its own name!
+			case "${tree}" in
+				debian)	
+						# FIXME
+						# will this do?
+						echo python3-mysql.connector
+						;;
+
+				gentoo) 
+						echo dev-python/mysqlclient
+						;;
+
+				suse|rhel|centos|arch)
+						# FIXME
+						echo >&2 "ERROR: I don't know how to install mysql client for python3"
+						;;
+
+				*)		echo >&2 "ERROR: Unknown package tree '${tree}'."
 						;;
 			esac
 		fi
@@ -656,7 +728,7 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA_DEMO_SITE} -ne 0 ]
 		then
-		require_cmd jq   || echo jq		# JSON parsing
+		require_cmd jq    || echo jq		# JSON parsing
 		require_cmd nginx || echo nginx
 	fi
 }
@@ -783,6 +855,10 @@ do
 			PACKAGES_NETDATA_PYTHON=1
 			;;
 
+		python3|python3-yaml|yaml-python3|netdata-python3)
+			PACKAGES_NETDATA_PYTHON3=1
+			;;
+
 		python-mysql|mysql-python|mysqldb|netdata-mysql)
 			PACKAGES_NETDATA_PYTHON=1
 			PACKAGES_NETDATA_PYTHON_MYSQL=1
@@ -813,6 +889,7 @@ do
 			PACKAGES_NETDATA=1
 			PACKAGES_NETDATA_NODEJS=1
 			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_PYTHON3=1
 			PACKAGES_NETDATA_PYTHON_MYSQL=1
 			PACKAGES_DEBUG=1
 			PACKAGES_IPRANGE=1
@@ -848,6 +925,18 @@ if [ -z "${package_installer}" -o -z "${package_tree}" ]
 	detect_package_manager_from_distribution "${distribution}"
 fi
 
+pv=$(python --version)
+if [[ "${pv}" =~ ^Python\ 2.* ]]
+then
+	pv=2
+elif [[ "${pv}" =~ ^Python\ 3.* ]]
+then
+	pv=3
+	PACKAGES_NETDATA_PYTHON3=1
+else
+	pv=2
+fi
+
 [ "${detection}" = "/etc/os-release" ] && cat <<EOF
 
 /etc/os-release information:
@@ -867,6 +956,7 @@ Codename        : ${codename}
 Package Manager : ${package_installer}
 Packages Tree   : ${package_tree}
 Detection Method: ${detection}
+Default Python v: ${pv} $([ ${pv} -eq 2 -a ${PACKAGES_NETDATA_PYTHON3} -eq 1 ] && echo "(will install python3 too)")
 EOF
 
 cat <<EOF
