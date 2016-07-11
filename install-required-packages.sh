@@ -1154,4 +1154,8 @@ else
 	echo >&2 "All required packages are already installed"
 fi
 
+echo >&2
+echo >&2 "All Done! - Now proceed to the next step."
+echo >&2
+
 exit 0
