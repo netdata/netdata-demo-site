@@ -633,14 +633,11 @@ declare -A pkg_python3_yaml=(
 declare -A pkg_python3_mysqldb=(
 	   ['arch']="ERROR/I don't know how to install mysql client for python3"
 	 ['centos']="ERROR/I don't know how to install mysql client for python3"
-	 ['debian']="python3-mysqldb"
+	 ['debian']="ERROR/This system does not have python3-mysqldb available. You have to install it with pip3."
 	 ['gentoo']="dev-python/mysqlclient"
 	   ['rhel']="python3-mysql"
 	   ['suse']="ERROR/I don't know how to install mysql client for python3"
 	['default']="ERROR/I don't know how to install mysql client for python3"
-
-	# exceptions
-	['ubuntu-12.04']="ERROR/I don't know how to install python3-mysqldb here"
 	)
 
 declare -A pkg_python3=(
