@@ -303,7 +303,7 @@ detect_package_manager_from_distribution() {
 		arch*)
 			package_installer="install_pacman"
 			tree="arch"
-			if [ -z "${pacman}" ]
+			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${pacman}" ]
 				then
 				echo >&2 "command 'pacman' is required to install packages on a '${distribution} ${version}' system."
 				exit 1
@@ -313,7 +313,7 @@ detect_package_manager_from_distribution() {
 		gentoo*)
 			package_installer="install_emerge"
 			tree="gentoo"
-			if [ -z "${emerge}" ]
+			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${emerge}" ]
 				then
 				echo >&2 "command 'emerge' is required to install packages on a '${distribution} ${version}' system."
 				exit 1
@@ -323,7 +323,7 @@ detect_package_manager_from_distribution() {
 		debian*|ubuntu*)
 			package_installer="install_apt_get"
 			tree="debian"
-			if [ -z "${apt_get}" ]
+			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${apt_get}" ]
 				then
 				echo >&2 "command 'apt-get' is required to install packages on a '${distribution} ${version}' system."
 				exit 1
@@ -335,7 +335,7 @@ detect_package_manager_from_distribution() {
 			echo >&2 "Check: http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/"
 			package_installer="install_yum"
 			tree="centos"
-			if [ -z "${yum}" ]
+			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${yum}" ]
 				then
 				echo >&2 "command 'yum' is required to install packages on a '${distribution} ${version}' system."
 				exit 1
@@ -345,8 +345,8 @@ detect_package_manager_from_distribution() {
 		fedora*|redhat*|red\ hat*|rhel*)
 			package_installer=
 			tree="rhel"
-			[ ! -z "${yum}" ] && package_installer="install_yum"
-			[ ! -z "${dnf}" ] && package_installer="install_dnf"
+			[ ${IGNORE_INSTALLED} -eq 0 -a ! -z "${yum}" ] && package_installer="install_yum"
+			[ ${IGNORE_INSTALLED} -eq 0 -a ! -z "${dnf}" ] && package_installer="install_dnf"
 			if [ -z "${package_installer}" ]
 				then
 				echo >&2 "command 'yum' or 'dnf' is required to install packages on a '${distribution} ${version}' system."
@@ -357,7 +357,7 @@ detect_package_manager_from_distribution() {
 		suse*|opensuse*)
 			package_installer="install_zypper"
 			tree="suse"
-			if [ -z "${zypper}" ]
+			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${zypper}" ]
 				then
 				echo >&2 "command 'zypper' is required to install packages on a '${distribution} ${version}' system."
 				exit 1
@@ -379,7 +379,7 @@ check_package_manager() {
 
 	case "${1}" in
 		apt-get)
-			[ -z "${apt_get}" ] && echo >&2 "${1} is not available." && return 1
+			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${apt_get}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_apt_get"
 			tree="debian"
 			detection="user-input"
@@ -387,7 +387,7 @@ check_package_manager() {
 			;;
 
 		dnf)
-			[ -z "${dnf}" ] && echo >&2 "${1} is not available." && return 1
+			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${dnf}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_dnf"
 			tree="rhel"
 			detection="user-input"
@@ -395,7 +395,7 @@ check_package_manager() {
 			;;
 
 		emerge)
-			[ -z "${emerge}" ] && echo >&2 "${1} is not available." && return 1
+			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${emerge}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_emerge"
 			tree="gentoo"
 			detection="user-input"
@@ -403,7 +403,7 @@ check_package_manager() {
 			;;
 
 		pacman)
-			[ -z "${pacman}" ] && echo >&2 "${1} is not available." && return 1
+			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${pacman}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_pacman"
 			tree="arch"
 			detection="user-input"
@@ -411,7 +411,7 @@ check_package_manager() {
 			;;
 
 		zypper)
-			[ -z "${zypper}" ] && echo >&2 "${1} is not available." && return 1
+			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${zypper}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_zypper"
 			tree="suse"
 			detection="user-input"
@@ -419,7 +419,7 @@ check_package_manager() {
 			;;
 
 		yum)
-			[ -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
+			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${yum}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_yum"
 			if [ "${distribution}" = "centos" ]
 				then
@@ -638,6 +638,9 @@ declare -A pkg_python3_mysqldb=(
 	   ['rhel']="python3-mysql"
 	   ['suse']="ERROR/I don't know how to install mysql client for python3"
 	['default']="ERROR/I don't know how to install mysql client for python3"
+
+	# exceptions
+	['ubuntu-16.04']="python3-mysqldb"
 	)
 
 declare -A pkg_python3=(
