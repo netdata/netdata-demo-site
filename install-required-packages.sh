@@ -498,12 +498,12 @@ declare -A pkg_gdb=(
 	)
 
 declare -A pkg_iproute2=(
+	 ['debian']="iproute2"
 	 ['gentoo']="sys-apps/iproute2"
-	['default']="iproute2"
+	['default']="iproute"
 
 	# exceptions
 	['ubuntu-12.04']="iproute"
-	   ['fedora-22']="iproute"
 	)
 
 declare -A pkg_ipset=(
@@ -622,10 +622,10 @@ declare -A pkg_python3_pip=(
 
 declare -A pkg_python3_yaml=(
 	   ['arch']="python-yaml"
-	 ['centos']="ERROR/I don't know how to install python3-yaml here"
+	 ['centos']="python3-PyYAML"
 	 ['debian']="python3-yaml"
 	 ['gentoo']="dev-python/pyyaml"
-	   ['rhel']="ERROR/I don't know how to install python3-yaml here"
+	   ['rhel']="python3-PyYAML"
 	   ['suse']="python3-PyYAML"
 	['default']="python3-yaml"
 	)
@@ -635,7 +635,7 @@ declare -A pkg_python3_mysqldb=(
 	 ['centos']="ERROR/I don't know how to install mysql client for python3"
 	 ['debian']="python3-mysql.connector"
 	 ['gentoo']="dev-python/mysqlclient"
-	   ['rhel']="ERROR/I don't know how to install mysql client for python3"
+	   ['rhel']="python3-mysql"
 	   ['suse']="ERROR/I don't know how to install mysql client for python3"
 	['default']="ERROR/I don't know how to install mysql client for python3"
 
