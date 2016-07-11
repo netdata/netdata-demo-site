@@ -533,10 +533,10 @@ declare -A pkg_libz_dev=(
 
 declare -A pkg_libuuid_dev=(
 	   ['arch']="util-linux"
-	 ['centos']="uuid-devel"
+	 ['centos']="libuuid-devel"
 	 ['debian']="uuid-dev"
 	 ['gentoo']="sys-apps/util-linux"
-	   ['rhel']="uuid-devel"
+	   ['rhel']="libuuid-devel"
 	   ['suse']="libuuid-devel"
 	['default']=""
 	)
