@@ -17,6 +17,7 @@ PACKAGES_FIREHOL=${PACKAGES_FIREHOL-0}
 PACKAGES_FIREQOS=${PACKAGES_FIREQOS-0}
 PACKAGES_UPDATE_IPSETS=${PACKAGES_UPDATE_IPSETS-0}
 PACKAGES_NETDATA_DEMO_SITE=${PACKAGES_NETDATA_DEMO_SITE-0}
+PACKAGES_NETDATA_SENSORS=${PACKAGES_NETDATA_SENSORS-0}
 
 # Check which package managers are available
 lsb_release=$(which lsb_release 2>/dev/null || command lsb_release 2>/dev/null)
@@ -84,6 +85,8 @@ Supported packages (you can append many of them):
     - python-mysql   install MySQLdb
                      (for monitoring mysql, will install python3 version
                      if python3 is enabled or detected)
+
+    - sensors        install lm_sensors for monitoring h/w sensors
 
     - firehol-all    packages required for FireHOL, FireQoS, update-ipsets
     - firehol        packages required for FireHOL
@@ -551,6 +554,11 @@ declare -A pkg_libmnl_dev=(
 	['default']=""
 	)
 
+declare -A pkg_lm_sensors=(
+	 ['gentoo']="sys-apps/lm_sensors"
+	['default']="lm_sensors"
+	)
+
 declare -A pkg_make=(
 	 ['gentoo']="sys-devel/make"
 	['default']="make"
@@ -786,6 +794,14 @@ packages() {
 	fi
 
 	# -------------------------------------------------------------------------
+	# sensors
+
+	if [ ${PACKAGES_NETDATA_SENSORS} -ne 0 ]
+		then
+		require_cmd sensors || suitable_package lm_sensors
+	fi
+
+	# -------------------------------------------------------------------------
 	# scripting interpreters for netdata plugins
 
 	if [ ${PACKAGES_NETDATA_NODEJS} -ne 0 ]
@@ -1012,6 +1028,7 @@ do
 			PACKAGES_NETDATA_NODEJS=1
 			PACKAGES_NETDATA_PYTHON=1
 			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			PACKAGES_NETDATA_SENSORS=1
 			;;
 
 		netdata)
@@ -1033,7 +1050,14 @@ do
 			;;
 
 		nodejs|netdata-nodejs)
+			PACKAGES_NETDATA=1
 			PACKAGES_NETDATA_NODEJS=1
+			;;
+
+		sensors|netdata-sensors)
+			PACKAGES_NETDATA=1
+			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_SENSORS=1
 			;;
 
 		firehol-all)
