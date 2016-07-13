@@ -555,8 +555,13 @@ declare -A pkg_libmnl_dev=(
 	)
 
 declare -A pkg_lm_sensors=(
+	   ['arch']="lm_sensors"
+	 ['centos']="lm_sensors"
+	 ['debian']="lm-sensors"
 	 ['gentoo']="sys-apps/lm_sensors"
-	['default']="lm-sensors"
+	   ['rhel']="lm_sensors"
+	   ['suse']="lm_sensors"
+	['default']="lm_sensors"
 	)
 
 declare -A pkg_make=(
