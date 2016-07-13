@@ -556,7 +556,7 @@ declare -A pkg_libmnl_dev=(
 
 declare -A pkg_lm_sensors=(
 	 ['gentoo']="sys-apps/lm_sensors"
-	['default']="lm_sensors"
+	['default']="lm-sensors"
 	)
 
 declare -A pkg_make=(
