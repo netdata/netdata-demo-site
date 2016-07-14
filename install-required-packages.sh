@@ -20,13 +20,13 @@ PACKAGES_NETDATA_DEMO_SITE=${PACKAGES_NETDATA_DEMO_SITE-0}
 PACKAGES_NETDATA_SENSORS=${PACKAGES_NETDATA_SENSORS-0}
 
 # Check which package managers are available
-lsb_release=$(which lsb_release 2>/dev/null || command lsb_release 2>/dev/null)
-emerge=$(which emerge 2>/dev/null || command emerge 2>/dev/null)
-apt_get=$(which apt-get 2>/dev/null || command apt-get 2>/dev/null)
-yum=$(which yum 2>/dev/null || command yum 2>/dev/null)
-dnf=$(which dnf 2>/dev/null || command dnf 2>/dev/null)
-pacman=$(which pacman 2>/dev/null || command pacman 2>/dev/null)
-zypper=$(which zypper 2>/dev/null || command zypper 2>/dev/null)
+lsb_release=$(which lsb_release 2>/dev/null || command -v lsb_release 2>/dev/null)
+emerge=$(which emerge 2>/dev/null || command -v emerge 2>/dev/null)
+apt_get=$(which apt-get 2>/dev/null || command -v apt-get 2>/dev/null)
+yum=$(which yum 2>/dev/null || command -v yum 2>/dev/null)
+dnf=$(which dnf 2>/dev/null || command -v dnf 2>/dev/null)
+pacman=$(which pacman 2>/dev/null || command -v pacman 2>/dev/null)
+zypper=$(which zypper 2>/dev/null || command -v zypper 2>/dev/null)
 
 distribution=
 version=
@@ -452,7 +452,7 @@ require_cmd() {
 	while [ ! -z "${1}" ]
 	do
 		which "${1}" >/dev/null 2>&1 && return 0
-		command "${1}" >/dev/null 2>&1 && return 0
+		command -v "${1}" >/dev/null 2>&1 && return 0
 		shift
 	done
 	return 1
