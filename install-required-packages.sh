@@ -587,6 +587,10 @@ declare -A pkg_nginx=(
 declare -A pkg_nodejs=(
 	 ['gentoo']="net-libs/nodejs"
 	['default']="nodejs"
+
+	# exceptions
+	['debian-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
+	['debian-7']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	)
 
 declare -A pkg_pkg_config=(
