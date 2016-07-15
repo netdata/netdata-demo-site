@@ -961,6 +961,7 @@ install_zypper() {
 }
 
 install_failed() {
+	local ret="${1}"
 	cat <<EOF
 
 
@@ -985,7 +986,14 @@ What to do now:
 
 
 EOF
+	remote_log "FAILED" ${ret}
 	exit 1
+}
+
+remote_log() {
+	# log success or failure on our system
+	# to help us solve installation issues
+	curl >/dev/null 2>&1 -Ss --max-time 3 "https://registry.my-netdata.io/log/installer?status=${1}&error=${2}&distribution=${distribution}&version=${version}&installer=${package_installer}&tree=${tree}&detection=${detection}&netdata=${PACKAGES_NETDATA}&nodejs=${PACKAGES_NETDATA_NODEJS}&python=${PACKAGES_NETDATA_PYTHON}&python3=${PACKAGES_NETDATA_PYTHON3}&mysql=${PACKAGES_NETDATA_PYTHON_MYSQL}&sensors=${PACKAGES_NETDATA_SENSORS}&firehol=${PACKAGES_FIREHOL}&fireqos=${PACKAGES_FIREQOS}&iprange=${PACKAGES_IPRANGE}&update_ipsets=${PACKAGES_UPDATE_IPSETS}&demo=${PACKAGES_NETDATA_DEMO_SITE}"
 }
 
 if [ -z "${1}" ]
@@ -1019,7 +1027,7 @@ do
 			check_package_manager "${2}" || exit 1
 			shift
 			;;
-			
+
 		dont-wait|--dont-wait|-n)
 			DONT_WAIT=1
 			;;
@@ -1178,7 +1186,7 @@ if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]
 		read -p "Press ENTER to run it > "
 	fi
 
-	${package_installer} "${PACKAGES_TO_INSTALL[@]}" || install_failed
+	${package_installer} "${PACKAGES_TO_INSTALL[@]}" || install_failed $?
 else
 	echo >&2 "All required packages are already installed"
 fi
@@ -1186,5 +1194,7 @@ fi
 echo >&2
 echo >&2 "All Done! - Now proceed to the next step."
 echo >&2
+
+remote_log "OK"
 
 exit 0
