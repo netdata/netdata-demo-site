@@ -624,6 +624,7 @@ declare -A pkg_python_pip=(
 	)
 
 declare -A pkg_python_yaml=(
+	   ['arch']="python2-yaml"
 	 ['gentoo']="dev-python/pyyaml"
 	   ['suse']="python-PyYAML"
 	['default']="python-yaml"
