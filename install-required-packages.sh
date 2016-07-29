@@ -613,7 +613,7 @@ declare -A pkg_python_mysqldb=(
 	 ['centos']="MySQL-python"
 	 ['debian']="python-mysqldb"
 	 ['gentoo']="dev-python/mysqlclient"
-	   ['rhel']="python-mysql"
+	   ['rhel']="MySQL-python"
 	   ['suse']="python-MySQL-python"
 	['default']="python-mysql"
 	)
@@ -641,9 +641,10 @@ declare -A pkg_python3_pip=(
 declare -A pkg_python3_yaml=(
 	   ['arch']="python-yaml"
 	 ['centos']="python3-PyYAML"
+	 ['centos']="ERROR/I don't know how to install PyYAML library for python3"
 	 ['debian']="python3-yaml"
 	 ['gentoo']="dev-python/pyyaml"
-	   ['rhel']="python3-PyYAML"
+	   ['rhel']="ERROR/I don't know how to install PyYAML library for python3"
 	   ['suse']="python3-PyYAML"
 	['default']="python3-yaml"
 	)
@@ -653,7 +654,7 @@ declare -A pkg_python3_mysqldb=(
 	 ['centos']="ERROR/I don't know how to install mysql client for python3"
 	 ['debian']="ERROR/This system does not have python3-mysqldb available. You have to install it with pip3."
 	 ['gentoo']="dev-python/mysqlclient"
-	   ['rhel']="python3-mysql"
+	   ['rhel']="ERROR/I don't know how to install mysql client for python3"
 	   ['suse']="ERROR/I don't know how to install mysql client for python3"
 	['default']="ERROR/I don't know how to install mysql client for python3"
 
@@ -688,6 +689,7 @@ declare -A pkg_valgrind=(
 
 declare -A pkg_ulogd=(
 	 ['centos']="ERROR/I don't know how to install ulogd here"
+	   ['rhel']="ERROR/I don't know how to install ulogd here"
 	 ['gentoo']="app-admin/ulogd"
 	['default']="ulogd"
 	)
