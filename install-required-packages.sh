@@ -4,6 +4,12 @@ export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbi
 
 ME="${0}"
 
+if [ "${BASH_VERSINFO[0]}" -lt "4" ]
+then
+	echo >&2 "Sorry! This script needs BASH version 4+, but you have BASH version ${BASH_VERSION}"
+	exit 1
+fi
+
 # These options control which packages we are going to install
 # They can be pre-set, but also can be controlled with command line options
 PACKAGES_NETDATA=${PACKAGES_NETDATA-0}
