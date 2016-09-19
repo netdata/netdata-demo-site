@@ -4,6 +4,12 @@ export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbi
 
 ME="${0}"
 
+if [ "${BASH_VERSINFO[0]}" -lt "4" ]
+then
+	echo >&2 "Sorry! This script needs BASH version 4+, but you have BASH version ${BASH_VERSION}"
+	exit 1
+fi
+
 # These options control which packages we are going to install
 # They can be pre-set, but also can be controlled with command line options
 PACKAGES_NETDATA=${PACKAGES_NETDATA-0}
@@ -613,7 +619,7 @@ declare -A pkg_python_mysqldb=(
 	 ['centos']="MySQL-python"
 	 ['debian']="python-mysqldb"
 	 ['gentoo']="dev-python/mysqlclient"
-	   ['rhel']="python-mysql"
+	   ['rhel']="MySQL-python"
 	   ['suse']="python-MySQL-python"
 	['default']="python-mysql"
 	)
@@ -641,9 +647,10 @@ declare -A pkg_python3_pip=(
 declare -A pkg_python3_yaml=(
 	   ['arch']="python-yaml"
 	 ['centos']="python3-PyYAML"
+	 ['centos']="ERROR/I don't know how to install PyYAML library for python3"
 	 ['debian']="python3-yaml"
 	 ['gentoo']="dev-python/pyyaml"
-	   ['rhel']="python3-PyYAML"
+	   ['rhel']="ERROR/I don't know how to install PyYAML library for python3"
 	   ['suse']="python3-PyYAML"
 	['default']="python3-yaml"
 	)
@@ -653,7 +660,7 @@ declare -A pkg_python3_mysqldb=(
 	 ['centos']="ERROR/I don't know how to install mysql client for python3"
 	 ['debian']="ERROR/This system does not have python3-mysqldb available. You have to install it with pip3."
 	 ['gentoo']="dev-python/mysqlclient"
-	   ['rhel']="python3-mysql"
+	   ['rhel']="ERROR/I don't know how to install mysql client for python3"
 	   ['suse']="ERROR/I don't know how to install mysql client for python3"
 	['default']="ERROR/I don't know how to install mysql client for python3"
 
@@ -688,6 +695,7 @@ declare -A pkg_valgrind=(
 
 declare -A pkg_ulogd=(
 	 ['centos']="ERROR/I don't know how to install ulogd here"
+	   ['rhel']="ERROR/I don't know how to install ulogd here"
 	 ['gentoo']="app-admin/ulogd"
 	['default']="ulogd"
 	)
@@ -1135,7 +1143,7 @@ if [ -z "${package_installer}" -o -z "${tree}" ]
 	detect_package_manager_from_distribution "${distribution}"
 fi
 
-pv=$(python --version)
+pv=$(python --version 2>/dev/null)
 if [[ "${pv}" =~ ^Python\ 2.* ]]
 then
 	pv=2
