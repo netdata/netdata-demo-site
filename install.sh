@@ -92,6 +92,8 @@ myinstall etc/systemd/system/fireqos.service  root:root 644 || exit 1
 
 myinstall etc/sysctl.d/core.conf root:root 644 || exit 1
 myinstall etc/sysctl.d/synproxy.conf root:root 644 || exit 1
+myinstall etc/sysctl.d/net-buffers.conf root:root 644 || exit 1
+myinstall etc/sysctl.d/net-security.conf root:root 644 || exit 1
 sysctl --system
 
 # -----------------------------------------------------------------------------
