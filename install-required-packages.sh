@@ -602,6 +602,7 @@ declare -A pkg_nodejs=(
 	['default']="nodejs"
 
 	# exceptions
+	['centos-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	['debian-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	['debian-7']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	)
