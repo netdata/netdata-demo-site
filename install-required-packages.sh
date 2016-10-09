@@ -476,12 +476,15 @@ declare -A pkg_autoconf_archive=(
 	['default']="autoconf-archive"
 
 	# exceptions
-	['centos-6']="ERROR/I don't know how to install autoconf-archive."
+   ['centos-6']="ERROR/I don't know how to install autoconf-archive."
 	)
 
 declare -A pkg_autogen=(
 	 ['gentoo']="sys-devel/autogen"
 	['default']="autogen"
+
+	# exceptions
+   ['centos-6']="ERROR/I don't know how to install autogen."
 	)
 
 declare -A pkg_automake=(
@@ -638,6 +641,9 @@ declare -A pkg_python_yaml=(
 	 ['gentoo']="dev-python/pyyaml"
 	   ['suse']="python-PyYAML"
 	['default']="python-yaml"
+
+	# exceptions
+   ['centos-6']="PyYAML"
 	)
 
 declare -A pkg_python3_pip=(
@@ -909,7 +915,7 @@ install_apt_get() {
 }
 
 validate_install_yum() {
-	echo "${*}"
+	yum list installed "${*}" >/dev/null 2>&1 || echo "${*}"
 }
 
 install_yum() {
