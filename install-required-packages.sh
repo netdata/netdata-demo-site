@@ -339,7 +339,7 @@ detect_package_manager_from_distribution() {
 			fi
 			;;
 
-		centos*)
+		centos*|clearos*)
 			echo >&2 "You should have EPEL enabled to install all the prerequisites."
 			echo >&2 "Check: http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/"
 			package_installer="install_yum"
@@ -474,6 +474,9 @@ declare -A pkg_autoconf=(
 declare -A pkg_autoconf_archive=(
 	 ['gentoo']="sys-devel/autoconf-archive"
 	['default']="autoconf-archive"
+
+	# exceptions
+	['centos-6']="ERROR/I don't know how to install autoconf-archive."
 	)
 
 declare -A pkg_autogen=(
@@ -578,6 +581,7 @@ declare -A pkg_make=(
 declare -A pkg_netcat=(
 	   ['arch']="netcat"
 	 ['centos']="nmap-ncat"
+	 ['centos-6']="nc"
 	 ['debian']="netcat"
 	 ['gentoo']="net-analyzer/netcat"
 	   ['rhel']="nmap-ncat"
@@ -711,13 +715,15 @@ declare -A pkg_zip=(
 	)
 
 suitable_package() {
-	local package="${1//-/_}" p=
+	local package="${1//-/_}" p= v="${version//.*/}"
 
 	# echo >&2 "Searching for ${package}..."
 
 	eval "p=\${pkg_${package}['${distribution,,}-${version,,}']}"
+	[ -z "${p}" ] && eval "p=\${pkg_${package}['${distribution,,}-${v,,}']}"
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['${distribution,,}']}"
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['${tree}-${version}']}"
+	[ -z "${p}" ] && eval "p=\${pkg_${package}['${tree}-${v}']}"
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['${tree}']}"
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['default']}"
 
@@ -908,7 +914,7 @@ install_yum() {
 	fi
 
 	# install the required packages
-	run ${sudo} yum install "${@}"
+	run ${sudo} yum install "${@}" --enablerepo=epel-testing
 }
 
 install_dnf() {
