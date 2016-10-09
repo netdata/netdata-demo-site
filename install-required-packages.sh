@@ -891,7 +891,7 @@ if [ ${UID} -ne 0 ]
 fi
 
 validate_install_apt_get() {
-	dpkg -l >/dev/null 2>&1 "${*}" || echo "${x}"
+	dpkg -l >/dev/null 2>&1 "${*}" || echo "${*}"
 }
 
 install_apt_get() {
