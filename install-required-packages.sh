@@ -740,7 +740,8 @@ suitable_package() {
 		echo >&2 
 		return 1
 	else
-		echo "${p}"
+		# echo "${p}"
+		validate_${package_installer} "${p}"
 		return 0
 	fi
 }
@@ -889,6 +890,10 @@ if [ ${UID} -ne 0 ]
 	sudo="sudo"
 fi
 
+validate_install_apt_get() {
+	dpkg -l >/dev/null 2>&1 "${*}" || echo "${x}"
+}
+
 install_apt_get() {
 	# download the latest package info
 	if [ "${DRYRUN}" -eq 1 ]
@@ -903,6 +908,10 @@ install_apt_get() {
 	run ${sudo} apt-get install "${@}"
 }
 
+validate_install_yum() {
+	echo "${*}"
+}
+
 install_yum() {
 	# download the latest package info
 	if [ "${DRYRUN}" -eq 1 ]
@@ -915,6 +924,10 @@ install_yum() {
 
 	# install the required packages
 	run ${sudo} yum install "${@}" # --enablerepo=epel-testing
+}
+
+validate_install_dnf() {
+	echo "${*}"
 }
 
 install_dnf() {
@@ -934,6 +947,10 @@ install_dnf() {
 	run ${sudo} dnf install "${@}"
 }
 
+validate_install_emerge() {
+	echo "${*}"
+}
+
 install_emerge() {
 	# download the latest package info
 	# we don't do this for emerge - it is very slow
@@ -951,6 +968,10 @@ install_emerge() {
 	run ${sudo} emerge --ask -DNv "${@}"
 }
 
+validate_install_pacman() {
+	echo "${*}"
+}
+
 install_pacman() {
 	# download the latest package info
 	if [ "${DRYRUN}" -eq 1 ]
@@ -963,6 +984,10 @@ install_pacman() {
 
 	# install the required packages
 	run ${sudo} pacman --needed -S "${@}"
+}
+
+validate_install_zypper() {
+	echo "${*}"
 }
 
 install_zypper() {
@@ -1183,16 +1208,12 @@ Detection Method: ${detection}
 Default Python v: ${pv} $([ ${pv} -eq 2 -a ${PACKAGES_NETDATA_PYTHON3} -eq 1 ] && echo "(will install python3 too)")
 EOF
 
-cat <<EOF
-
-The following command will be run:
-
-EOF
-
 PACKAGES_TO_INSTALL=( $(packages | sort -u) )
 
 if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]
 	then
+	echo >&2
+	echo >&2 "The following command will be run:"
 	echo >&2
 	DRYRUN=1
 	${package_installer} "${PACKAGES_TO_INSTALL[@]}"
@@ -1206,13 +1227,16 @@ if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]
 	fi
 
 	${package_installer} "${PACKAGES_TO_INSTALL[@]}" || install_failed $?
-else
-	echo >&2 "All required packages are already installed"
-fi
 
-echo >&2
-echo >&2 "All Done! - Now proceed to the next step."
-echo >&2
+	echo >&2
+	echo >&2 "All Done! - Now proceed to the next step."
+	echo >&2
+
+else
+	echo >&2
+	echo >&2 "All required packages are already installed. Now proceed to the next step."
+	echo >&2
+fi
 
 remote_log "OK"
 
