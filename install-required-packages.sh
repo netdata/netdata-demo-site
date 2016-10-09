@@ -914,7 +914,7 @@ install_yum() {
 	fi
 
 	# install the required packages
-	run ${sudo} yum install "${@}" --enablerepo=epel-testing
+	run ${sudo} yum install "${@}" # --enablerepo=epel-testing
 }
 
 install_dnf() {
