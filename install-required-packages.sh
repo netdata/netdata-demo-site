@@ -653,6 +653,7 @@ declare -A pkg_python_yaml=(
 	['default']="python-yaml"
 
 	# exceptions
+     ['rhel-6']="PyYAML"
    ['centos-6']="PyYAML"
   ['fedora-24']="PyYAML"
 	)
