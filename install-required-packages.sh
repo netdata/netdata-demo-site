@@ -478,6 +478,7 @@ declare -A pkg_autoconf_archive=(
 	# exceptions
        ['centos-6']="ERROR/I don't know how to install autoconf-archive."
          ['rhel-6']="ERROR/I don't know how to install autoconf-archive."
+         ['rhel-7']="ERROR/I don't know how to install autoconf-archive."
 	)
 
 declare -A pkg_autogen=(
@@ -608,6 +609,7 @@ declare -A pkg_nodejs=(
 
 	# exceptions
 	  ['rhel-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
+	  ['rhel-7']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	['centos-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	['debian-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	['debian-7']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
