@@ -50,7 +50,7 @@ usage() {
 	cat <<EOF
 OPTIONS:
 
-${ME} [--dont-wait] \\
+${ME} [--dont-wait] [--non-interactive] \\
   [distribution DD [version VV] [codename CN]] [installer IN] [packages]
 
 Supported distributions (DD):
@@ -636,6 +636,9 @@ declare -A pkg_python_mysqldb=(
 	   ['rhel']="MySQL-python"
 	   ['suse']="python-MySQL-python"
 	['default']="python-mysql"
+
+	# exceptions
+  ['fedora-24']="python2-mysql"
 	)
 
 declare -A pkg_python_pip=(
@@ -651,6 +654,7 @@ declare -A pkg_python_yaml=(
 
 	# exceptions
    ['centos-6']="PyYAML"
+  ['fedora-24']="PyYAML"
 	)
 
 declare -A pkg_python3_pip=(
@@ -727,6 +731,10 @@ declare -A pkg_zip=(
 	['default']="zip"
 	)
 
+validate_installed_package() {
+	validate_${package_installer} "${p}"
+}
+
 suitable_package() {
 	local package="${1//-/_}" p= v="${version//.*/}"
 
@@ -753,8 +761,12 @@ suitable_package() {
 		echo >&2 
 		return 1
 	else
-		# echo "${p}"
-		validate_${package_installer} "${p}"
+		if [ ${IGNORE_INSTALLED} -eq 0 ]
+			then
+			validate_installed_package "${p}"
+		else
+			echo "${p}"
+		fi
 		return 0
 	fi
 }
@@ -917,11 +929,20 @@ install_apt_get() {
 		echo >&2 
 	fi
 
+	local opts=
+	if [ ${NON_INTERACTIVE} -eq 1 ]
+		then
+		# http://serverfault.com/questions/227190/how-do-i-ask-apt-get-to-skip-any-interactive-post-install-configuration-steps
+		export DEBIAN_FRONTEND="noninteractive"
+		opts="-yq"
+	fi
+
 	# install the required packages
-	run ${sudo} apt-get install "${@}"
+	run ${sudo} apt-get ${opts} install "${@}"
 }
 
 validate_install_yum() {
+	echo >&2 " > Checking if package '${*}' is installed..."
 	yum list installed "${*}" >/dev/null 2>&1 || echo "${*}"
 }
 
@@ -935,12 +956,20 @@ install_yum() {
 		echo >&2 
 	fi
 
+	local opts=
+	if [ ${NON_INTERACTIVE} -eq 1 ]
+		then
+		# http://unix.stackexchange.com/questions/87822/does-yum-have-an-equivalent-to-apt-aptitudes-debian-frontend-noninteractive
+		opts="-y"
+	fi
+
 	# install the required packages
-	run ${sudo} yum install "${@}" # --enablerepo=epel-testing
+	run ${sudo} yum ${opts} install "${@}" # --enablerepo=epel-testing
 }
 
 validate_install_dnf() {
-	echo "${*}"
+	echo >&2 " > Checking if package '${*}' is installed..."
+	dnf list installed "${*}" >/dev/null 2>&1 || echo "${*}"
 }
 
 install_dnf() {
@@ -953,11 +982,18 @@ install_dnf() {
 		echo >&2 
 	fi
 
+	local opts=
+	if [ ${NON_INTERACTIVE} -eq 1 ]
+		then
+		# man dnf
+		opts="-y"
+	fi
+
 	# install the required packages
 	# --setopt=strict=0 allows dnf to proceed
 	# installing whatever is available
 	# even if a package is not found
-	run ${sudo} dnf install "${@}"
+	run ${sudo} dnf ${opts} install "${@}"
 }
 
 validate_install_emerge() {
@@ -977,8 +1013,15 @@ install_emerge() {
 		echo >&2 
 	fi
 
+	local opts="--ask"
+	if [ ${NON_INTERACTIVE} -eq 1 ]
+		then
+		# man dnf
+		opts=""
+	fi
+
 	# install the required packages
-	run ${sudo} emerge --ask -DNv "${@}"
+	run ${sudo} emerge ${opts} -DNv "${@}"
 }
 
 validate_install_pacman() {
@@ -996,7 +1039,13 @@ install_pacman() {
 	fi
 
 	# install the required packages
-	run ${sudo} pacman --needed -S "${@}"
+	if [ ${NON_INTERACTIVE} -eq 1 ]
+		then
+		# http://unix.stackexchange.com/questions/52277/pacman-option-to-assume-yes-to-every-question/52278
+		yes | run ${sudo} pacman --needed -S "${@}"
+	else
+		run ${sudo} pacman --needed -S "${@}"
+	fi
 }
 
 validate_install_zypper() {
@@ -1013,8 +1062,15 @@ install_zypper() {
 		echo >&2 
 	fi
 
+	local opts=""
+	if [ ${NON_INTERACTIVE} -eq 1 ]
+		then
+		# http://unix.stackexchange.com/questions/82016/how-to-use-zypper-in-bash-scripts-for-someone-coming-from-apt-get
+		opts="--non-interactive"
+	fi
+
 	# install the required packages
-	run ${sudo} zypper install "${@}"
+	run ${sudo} zypper ${opts} install "${@}"
 }
 
 install_failed() {
@@ -1061,6 +1117,7 @@ fi
 
 # parse command line arguments
 DONT_WAIT=0
+NON_INTERACTIVE=0
 IGNORE_INSTALLED=0
 while [ ! -z "${1}" ]
 do
@@ -1087,6 +1144,10 @@ do
 
 		dont-wait|--dont-wait|-n)
 			DONT_WAIT=1
+			;;
+
+		non-interactive|--non-interactive|-y)
+			NON_INTERACTIVE=1
 			;;
 
 		ignore-installed|--ignore-installed|-i)
@@ -1234,7 +1295,7 @@ if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]
 	echo >&2
 	echo >&2
 
-	if [ ${DONT_WAIT} -eq 0 ]
+	if [ ${DONT_WAIT} -eq 0 -a ${NON_INTERACTIVE} -eq 0 ]
 		then
 		read -p "Press ENTER to run it > "
 	fi
