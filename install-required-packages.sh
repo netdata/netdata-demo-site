@@ -651,13 +651,9 @@ declare -A pkg_python_pip=(
 declare -A pkg_python_yaml=(
 	   ['arch']="python2-yaml"
 	 ['gentoo']="dev-python/pyyaml"
+           ['rhel']="PyYAML"
 	   ['suse']="python-PyYAML"
 	['default']="python-yaml"
-
-	# exceptions
-     ['rhel-6']="PyYAML"
-   ['centos-6']="PyYAML"
-  ['fedora-24']="PyYAML"
 	)
 
 declare -A pkg_python3_pip=(
