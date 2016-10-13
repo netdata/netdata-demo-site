@@ -476,7 +476,8 @@ declare -A pkg_autoconf_archive=(
 	['default']="autoconf-archive"
 
 	# exceptions
-   ['centos-6']="ERROR/I don't know how to install autoconf-archive."
+       ['centos-6']="ERROR/I don't know how to install autoconf-archive."
+         ['rhel-6']="ERROR/I don't know how to install autoconf-archive."
 	)
 
 declare -A pkg_autogen=(
@@ -484,7 +485,8 @@ declare -A pkg_autogen=(
 	['default']="autogen"
 
 	# exceptions
-   ['centos-6']="ERROR/I don't know how to install autogen."
+       ['centos-6']="ERROR/I don't know how to install autogen."
+         ['rhel-6']="ERROR/I don't know how to install autogen."
 	)
 
 declare -A pkg_automake=(
@@ -584,12 +586,15 @@ declare -A pkg_make=(
 declare -A pkg_netcat=(
 	   ['arch']="netcat"
 	 ['centos']="nmap-ncat"
-	 ['centos-6']="nc"
 	 ['debian']="netcat"
 	 ['gentoo']="net-analyzer/netcat"
 	   ['rhel']="nmap-ncat"
 	   ['suse']="netcat-openbsd"
 	['default']="netcat"
+
+	# exceptions
+       ['centos-6']="nc"
+	 ['rhel-6']="nc"
 	)
 
 declare -A pkg_nginx=(
@@ -602,6 +607,7 @@ declare -A pkg_nodejs=(
 	['default']="nodejs"
 
 	# exceptions
+	  ['rhel-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	['centos-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	['debian-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
 	['debian-7']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
