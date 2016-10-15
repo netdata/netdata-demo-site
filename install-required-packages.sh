@@ -17,6 +17,7 @@ PACKAGES_NETDATA_NODEJS=${PACKAGES_NETDATA_NODEJS-0}
 PACKAGES_NETDATA_PYTHON=${PACKAGES_NETDATA_PYTHON-0}
 PACKAGES_NETDATA_PYTHON3=${PACKAGES_NETDATA_PYTHON3-0}
 PACKAGES_NETDATA_PYTHON_MYSQL=${PACKAGES_NETDATA_PYTHON_MYSQL-0}
+PACKAGES_NETDATA_PYTHON_POSTGRES=${PACKAGES_NETDATA_PYTHON_POSTGRES-0}
 PACKAGES_DEBUG=${PACKAGES_DEBUG-0}
 PACKAGES_IPRANGE=${PACKAGES_IPRANGE-0}
 PACKAGES_FIREHOL=${PACKAGES_FIREHOL-0}
@@ -74,7 +75,8 @@ Supported installers (IN):
 Supported packages (you can append many of them):
 
     - netdata-all    all packages required to install netdata
-                     including mysql client, nodejs, python, etc
+                     including mysql client, postgres client,
+                     node.js, python, sensors, etc
 
     - netdata        minimum packages required to install netdata
                      (no mysql client, no nodejs, includes python)
@@ -90,6 +92,10 @@ Supported packages (you can append many of them):
 
     - python-mysql   install MySQLdb
                      (for monitoring mysql, will install python3 version
+                     if python3 is enabled or detected)
+
+    - python-postgres install psycopg2
+                     (for monitoring postgres, will install python3 version
                      if python3 is enabled or detected)
 
     - sensors        install lm_sensors for monitoring h/w sensors
@@ -309,7 +315,7 @@ user_picks_distribution() {
 
 detect_package_manager_from_distribution() {
 	case "${1,,}" in
-		arch*)
+		arch*|manjaro*)
 			package_installer="install_pacman"
 			tree="arch"
 			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${pacman}" ]
@@ -643,6 +649,16 @@ declare -A pkg_python_mysqldb=(
   ['fedora-24']="python2-mysql"
 	)
 
+declare -A pkg_python_psycopg2=(
+	   ['arch']="python2-psycopg2"
+	 ['centos']="python-psycopg2"
+	 ['debian']="python-psycopg2"
+	 ['gentoo']="dev-python/psycopg"
+	   ['rhel']="python-psycopg2"
+	   ['suse']="python-psycopg2"
+	['default']="python-psycopg2"
+	)
+
 declare -A pkg_python_pip=(
 	 ['gentoo']="dev-python/pip"
 	['default']="python-pip"
@@ -686,6 +702,16 @@ declare -A pkg_python3_mysqldb=(
 
 	# exceptions
 	['ubuntu-16.04']="python3-mysqldb"
+	)
+
+declare -A pkg_python3_psycopg2=(
+	   ['arch']="python-psycopg2"
+	 ['centos']="ERROR/I don't know how to install postgres client for python3"
+	 ['debian']="ERROR/I don't know how to install postgres client for python3"
+	 ['gentoo']="dev-python/psycopg"
+	   ['rhel']="ERROR/I don't know how to install postgres client for python3"
+	   ['suse']="ERROR/I don't know how to install postgres client for python3"
+	['default']="ERROR/I don't know how to install postgres client for python3"
 	)
 
 declare -A pkg_python3=(
@@ -868,7 +894,8 @@ packages() {
 		suitable_package python-yaml
 		# suitable_package python-pip
 
-		[ ${PACKAGES_NETDATA_PYTHON_MYSQL} -ne 0 ] && suitable_package python-mysqldb
+		[ ${PACKAGES_NETDATA_PYTHON_MYSQL}    -ne 0 ] && suitable_package python-mysqldb
+		[ ${PACKAGES_NETDATA_PYTHON_POSTGRES} -ne 0 ] && suitable_package python-psycopg2
 	fi
 
 	# -------------------------------------------------------------------------
@@ -881,7 +908,8 @@ packages() {
 		suitable_package python3-yaml
 		# suitable_package python3-pip
 
-		[ ${PACKAGES_NETDATA_PYTHON_MYSQL} -ne 0 ] && suitable_package python3-mysqldb
+		[ ${PACKAGES_NETDATA_PYTHON_MYSQL}    -ne 0 ] && suitable_package python3-mysqldb
+		[ ${PACKAGES_NETDATA_PYTHON_POSTGRES} -ne 0 ] && suitable_package python3-psycopg2
 	fi
 
 	# -------------------------------------------------------------------------
@@ -1024,7 +1052,10 @@ install_emerge() {
 }
 
 validate_install_pacman() {
-	echo "${*}"
+	echo >&2 " > Checking if package '${*}' is installed..."
+
+	local x=$(pacman -Qs "${*}")
+	[ ! -n "${x}" ] && echo "${*}"
 }
 
 install_pacman() {
@@ -1105,7 +1136,7 @@ EOF
 remote_log() {
 	# log success or failure on our system
 	# to help us solve installation issues
-	curl >/dev/null 2>&1 -Ss --max-time 3 "https://registry.my-netdata.io/log/installer?status=${1}&error=${2}&distribution=${distribution}&version=${version}&installer=${package_installer}&tree=${tree}&detection=${detection}&netdata=${PACKAGES_NETDATA}&nodejs=${PACKAGES_NETDATA_NODEJS}&python=${PACKAGES_NETDATA_PYTHON}&python3=${PACKAGES_NETDATA_PYTHON3}&mysql=${PACKAGES_NETDATA_PYTHON_MYSQL}&sensors=${PACKAGES_NETDATA_SENSORS}&firehol=${PACKAGES_FIREHOL}&fireqos=${PACKAGES_FIREQOS}&iprange=${PACKAGES_IPRANGE}&update_ipsets=${PACKAGES_UPDATE_IPSETS}&demo=${PACKAGES_NETDATA_DEMO_SITE}"
+	curl >/dev/null 2>&1 -Ss --max-time 3 "https://registry.my-netdata.io/log/installer?status=${1}&error=${2}&distribution=${distribution}&version=${version}&installer=${package_installer}&tree=${tree}&detection=${detection}&netdata=${PACKAGES_NETDATA}&nodejs=${PACKAGES_NETDATA_NODEJS}&python=${PACKAGES_NETDATA_PYTHON}&python3=${PACKAGES_NETDATA_PYTHON3}&mysql=${PACKAGES_NETDATA_PYTHON_MYSQL}&postgres=${PACKAGES_NETDATA_PYTHON_POSTGRES}&sensors=${PACKAGES_NETDATA_SENSORS}&firehol=${PACKAGES_FIREHOL}&fireqos=${PACKAGES_FIREQOS}&iprange=${PACKAGES_IPRANGE}&update_ipsets=${PACKAGES_UPDATE_IPSETS}&demo=${PACKAGES_NETDATA_DEMO_SITE}"
 }
 
 if [ -z "${1}" ]
@@ -1158,6 +1189,7 @@ do
 			PACKAGES_NETDATA_NODEJS=1
 			PACKAGES_NETDATA_PYTHON=1
 			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			PACKAGES_NETDATA_PYTHON_POSTGRES=1
 			PACKAGES_NETDATA_SENSORS=1
 			;;
 
@@ -1177,6 +1209,11 @@ do
 		python-mysql|mysql-python|mysqldb|netdata-mysql)
 			PACKAGES_NETDATA_PYTHON=1
 			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			;;
+
+		python-postgres|postgres-python|psycopg2|netdata-postgres)
+			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_PYTHON_POSTGRES=1
 			;;
 
 		nodejs|netdata-nodejs)
@@ -1213,6 +1250,7 @@ do
 			PACKAGES_NETDATA_PYTHON=1
 			PACKAGES_NETDATA_PYTHON3=1
 			PACKAGES_NETDATA_PYTHON_MYSQL=1
+			PACKAGES_NETDATA_PYTHON_POSTGRES=1
 			PACKAGES_DEBUG=1
 			PACKAGES_IPRANGE=1
 			PACKAGES_FIREHOL=1
