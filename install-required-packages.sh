@@ -581,7 +581,7 @@ declare -A pkg_lm_sensors=(
 	 ['debian']="lm-sensors"
 	 ['gentoo']="sys-apps/lm_sensors"
 	   ['rhel']="lm_sensors"
-	   ['suse']="lm_sensors"
+	   ['suse']="sensors"
 	['default']="lm_sensors"
 	)
 
