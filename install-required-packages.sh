@@ -1043,12 +1043,11 @@ install_emerge() {
 	local opts="--ask"
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
-		# man dnf
 		opts=""
 	fi
 
 	# install the required packages
-	run ${sudo} emerge ${opts} -DNv "${@}"
+	run ${sudo} emerge ${opts} -v --noreplace "${@}"
 }
 
 validate_install_pacman() {
