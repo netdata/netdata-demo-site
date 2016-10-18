@@ -1078,7 +1078,7 @@ install_pacman() {
 }
 
 validate_install_zypper() {
-	echo "${*}"
+	rpm -q "${*}" >/dev/null 2>&1 || echo "${*}"
 }
 
 install_zypper() {
