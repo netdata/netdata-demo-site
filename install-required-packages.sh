@@ -482,9 +482,9 @@ declare -A pkg_autoconf_archive=(
 	['default']="autoconf-archive"
 
 	# exceptions
-       ['centos-6']=""
-         ['rhel-6']=""
-         ['rhel-7']=""
+       ['centos-6']="WARNING"
+         ['rhel-6']="WARNING"
+         ['rhel-7']="WARNING"
 	)
 
 declare -A pkg_autogen=(
@@ -492,8 +492,8 @@ declare -A pkg_autogen=(
 	['default']="autogen"
 
 	# exceptions
-       ['centos-6']=""
-         ['rhel-6']=""
+       ['centos-6']="WARNING"
+         ['rhel-6']="WARNING"
 	)
 
 declare -A pkg_automake=(
@@ -675,31 +675,31 @@ declare -A pkg_python_yaml=(
 
 declare -A pkg_python3_pip=(
 	   ['arch']="python-pip"
-	 ['centos']=""
+	 ['centos']="WARNING"
 	 ['gentoo']="dev-python/pip"
-	   ['rhel']=""
+	   ['rhel']="WARNING"
 	['default']="python3-pip"
 	)
 
 declare -A pkg_python3_yaml=(
 	   ['arch']="python-yaml"
 	 ['centos']="python3-PyYAML"
-	 ['centos']=""
+	 ['centos']="WARNING"
 	 ['debian']="python3-yaml"
 	 ['gentoo']="dev-python/pyyaml"
-	   ['rhel']=""
+	   ['rhel']="WARNING"
 	   ['suse']="python3-PyYAML"
 	['default']="python3-yaml"
 	)
 
 declare -A pkg_python3_mysqldb=(
-	   ['arch']=""
-	 ['centos']=""
-	 ['debian']=""
+	   ['arch']="WARNING"
+	 ['centos']="WARNING"
+	 ['debian']="WARNING"
 	 ['gentoo']="dev-python/mysqlclient"
-	   ['rhel']=""
-	   ['suse']=""
-	['default']=""
+	   ['rhel']="WARNING"
+	   ['suse']="WARNING"
+	['default']="WARNING"
 
 	# exceptions
 	['ubuntu-16.04']="python3-mysqldb"
@@ -707,12 +707,12 @@ declare -A pkg_python3_mysqldb=(
 
 declare -A pkg_python3_psycopg2=(
 	   ['arch']="python-psycopg2"
-	 ['centos']=""
-	 ['debian']=""
+	 ['centos']="WARNING"
+	 ['debian']="WARNING"
 	 ['gentoo']="dev-python/psycopg"
-	   ['rhel']=""
-	   ['suse']=""
-	['default']=""
+	   ['rhel']="WARNING"
+	   ['suse']="WARNING"
+	['default']="WARNING"
 	)
 
 declare -A pkg_python3=(
@@ -741,8 +741,8 @@ declare -A pkg_valgrind=(
 	)
 
 declare -A pkg_ulogd=(
-	 ['centos']=""
-	   ['rhel']=""
+	 ['centos']="WARNING"
+	   ['rhel']="WARNING"
 	 ['gentoo']="app-admin/ulogd"
 	['default']="ulogd"
 	)
