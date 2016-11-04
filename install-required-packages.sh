@@ -780,7 +780,7 @@ suitable_package() {
 		echo >&2 "package ${1} is not available in this system."
 		if [ -z "${p/*|/}" ]
 		then
-			echo "You may try to install without it."
+			echo >&2 "You may try to install without it."
 		else
 			echo >&2 "${p/*|/}"
 		fi
