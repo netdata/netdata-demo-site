@@ -482,9 +482,9 @@ declare -A pkg_autoconf_archive=(
 	['default']="autoconf-archive"
 
 	# exceptions
-       ['centos-6']="ERROR/I don't know how to install autoconf-archive."
-         ['rhel-6']="ERROR/I don't know how to install autoconf-archive."
-         ['rhel-7']="ERROR/I don't know how to install autoconf-archive."
+       ['centos-6']="WARNING/-"
+         ['rhel-6']="WARNING/-"
+         ['rhel-7']="WARNING/-"
 	)
 
 declare -A pkg_autogen=(
@@ -492,8 +492,8 @@ declare -A pkg_autogen=(
 	['default']="autogen"
 
 	# exceptions
-       ['centos-6']="ERROR/I don't know how to install autogen."
-         ['rhel-6']="ERROR/I don't know how to install autogen."
+       ['centos-6']="WARNING/-"
+         ['rhel-6']="WARNING/-"
 	)
 
 declare -A pkg_automake=(
@@ -614,11 +614,11 @@ declare -A pkg_nodejs=(
 	['default']="nodejs"
 
 	# exceptions
-	  ['rhel-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
-	  ['rhel-7']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
-	['centos-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
-	['debian-6']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
-	['debian-7']="ERROR/I don't know how to install nodejs. Check: https://nodejs.org/en/download/package-manager/"
+	  ['rhel-6']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	  ['rhel-7']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	['centos-6']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	['debian-6']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	['debian-7']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
 	)
 
 declare -A pkg_pkg_config=(
@@ -675,31 +675,31 @@ declare -A pkg_python_yaml=(
 
 declare -A pkg_python3_pip=(
 	   ['arch']="python-pip"
-	 ['centos']="ERROR/I don't know how to install python3-pip here"
+	 ['centos']="WARNING/-"
 	 ['gentoo']="dev-python/pip"
-	   ['rhel']="ERROR/I don't know how to install python3-pip here"
+	   ['rhel']="WARNING/-"
 	['default']="python3-pip"
 	)
 
 declare -A pkg_python3_yaml=(
 	   ['arch']="python-yaml"
 	 ['centos']="python3-PyYAML"
-	 ['centos']="ERROR/I don't know how to install PyYAML library for python3"
+	 ['centos']="WARNING/-"
 	 ['debian']="python3-yaml"
 	 ['gentoo']="dev-python/pyyaml"
-	   ['rhel']="ERROR/I don't know how to install PyYAML library for python3"
+	   ['rhel']="WARNING/-"
 	   ['suse']="python3-PyYAML"
 	['default']="python3-yaml"
 	)
 
 declare -A pkg_python3_mysqldb=(
-	   ['arch']="ERROR/I don't know how to install mysql client for python3"
-	 ['centos']="ERROR/I don't know how to install mysql client for python3"
-	 ['debian']="ERROR/This system does not have python3-mysqldb available. You have to install it with pip3."
+	   ['arch']="WARNING/-"
+	 ['centos']="WARNING/-"
+	 ['debian']="WARNING/-"
 	 ['gentoo']="dev-python/mysqlclient"
-	   ['rhel']="ERROR/I don't know how to install mysql client for python3"
-	   ['suse']="ERROR/I don't know how to install mysql client for python3"
-	['default']="ERROR/I don't know how to install mysql client for python3"
+	   ['rhel']="WARNING/-"
+	   ['suse']="WARNING/-"
+	['default']="WARNING/-"
 
 	# exceptions
 	['ubuntu-16.04']="python3-mysqldb"
@@ -707,12 +707,12 @@ declare -A pkg_python3_mysqldb=(
 
 declare -A pkg_python3_psycopg2=(
 	   ['arch']="python-psycopg2"
-	 ['centos']="ERROR/I don't know how to install postgres client for python3"
-	 ['debian']="ERROR/I don't know how to install postgres client for python3"
+	 ['centos']="WARNING/-"
+	 ['debian']="WARNING/-"
 	 ['gentoo']="dev-python/psycopg"
-	   ['rhel']="ERROR/I don't know how to install postgres client for python3"
-	   ['suse']="ERROR/I don't know how to install postgres client for python3"
-	['default']="ERROR/I don't know how to install postgres client for python3"
+	   ['rhel']="WARNING/-"
+	   ['suse']="WARNING/-"
+	['default']="WARNING/-"
 	)
 
 declare -A pkg_python3=(
@@ -741,8 +741,8 @@ declare -A pkg_valgrind=(
 	)
 
 declare -A pkg_ulogd=(
-	 ['centos']="ERROR/I don't know how to install ulogd here"
-	   ['rhel']="ERROR/I don't know how to install ulogd here"
+	 ['centos']="WARNING/-"
+	   ['rhel']="WARNING/-"
 	 ['gentoo']="app-admin/ulogd"
 	['default']="ulogd"
 	)
@@ -774,17 +774,18 @@ suitable_package() {
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['${tree}']}"
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['default']}"
 
-	if [[ "${p}" =~ ^(ERROR|WARNING)/.* ]]
+	if [[ "${p}" =~ ^(ERROR|WARNING|INFO)/.* ]]
 		then
-		echo >&2 
-		echo >&2 "${p}"
-		echo >&2 
+		echo >&2 "${p/\/*/}"
+		echo >&2 "package ${1} is not available in this system."
+		echo >&2 "${p/*\//}"
+		echo >&2
 		return 1
 	elif [ -z "${p}" ]
 		then
-		echo >&2 
-		echo >&2 "WARNING: I don't know how to install ${package} in ${tree}."
-		echo >&2 
+		echo >&2 "WARNING"
+		echo >&2 "package ${1} is not availabe in this system."
+		echo >&2
 		return 1
 	else
 		if [ ${IGNORE_INSTALLED} -eq 0 ]
