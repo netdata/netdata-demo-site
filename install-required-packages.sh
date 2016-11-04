@@ -778,12 +778,19 @@ suitable_package() {
 		then
 		echo >&2 "${p/|*/}"
 		echo >&2 "package ${1} is not available in this system."
-		echo >&2 "${p/*|/}"
+		if [ -z "${p/*|/}" ]
+		then
+			echo "You may try to install without it."
+		else
+			echo >&2 "${p/*|/}"
+		fi
+		echo >&2
 		return 1
 	elif [ -z "${p}" ]
 		then
 		echo >&2 "WARNING"
 		echo >&2 "package ${1} is not availabe in this system."
+		echo >&2
 		return 1
 	else
 		if [ ${IGNORE_INSTALLED} -eq 0 ]
