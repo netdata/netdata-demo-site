@@ -482,9 +482,9 @@ declare -A pkg_autoconf_archive=(
 	['default']="autoconf-archive"
 
 	# exceptions
-       ['centos-6']="WARNING"
-         ['rhel-6']="WARNING"
-         ['rhel-7']="WARNING"
+       ['centos-6']="WARNING|"
+         ['rhel-6']="WARNING|"
+         ['rhel-7']="WARNING|"
 	)
 
 declare -A pkg_autogen=(
@@ -492,8 +492,8 @@ declare -A pkg_autogen=(
 	['default']="autogen"
 
 	# exceptions
-       ['centos-6']="WARNING"
-         ['rhel-6']="WARNING"
+       ['centos-6']="WARNING|"
+         ['rhel-6']="WARNING|"
 	)
 
 declare -A pkg_automake=(
@@ -675,31 +675,31 @@ declare -A pkg_python_yaml=(
 
 declare -A pkg_python3_pip=(
 	   ['arch']="python-pip"
-	 ['centos']="WARNING"
+	 ['centos']="WARNING|"
 	 ['gentoo']="dev-python/pip"
-	   ['rhel']="WARNING"
+	   ['rhel']="WARNING|"
 	['default']="python3-pip"
 	)
 
 declare -A pkg_python3_yaml=(
 	   ['arch']="python-yaml"
 	 ['centos']="python3-PyYAML"
-	 ['centos']="WARNING"
+	 ['centos']="WARNING|"
 	 ['debian']="python3-yaml"
 	 ['gentoo']="dev-python/pyyaml"
-	   ['rhel']="WARNING"
+	   ['rhel']="WARNING|"
 	   ['suse']="python3-PyYAML"
 	['default']="python3-yaml"
 	)
 
 declare -A pkg_python3_mysqldb=(
-	   ['arch']="WARNING"
-	 ['centos']="WARNING"
-	 ['debian']="WARNING"
+	   ['arch']="WARNING|"
+	 ['centos']="WARNING|"
+	 ['debian']="WARNING|"
 	 ['gentoo']="dev-python/mysqlclient"
-	   ['rhel']="WARNING"
-	   ['suse']="WARNING"
-	['default']="WARNING"
+	   ['rhel']="WARNING|"
+	   ['suse']="WARNING|"
+	['default']="WARNING|"
 
 	# exceptions
 	['ubuntu-16.04']="python3-mysqldb"
@@ -707,12 +707,12 @@ declare -A pkg_python3_mysqldb=(
 
 declare -A pkg_python3_psycopg2=(
 	   ['arch']="python-psycopg2"
-	 ['centos']="WARNING"
-	 ['debian']="WARNING"
+	 ['centos']="WARNING|"
+	 ['debian']="WARNING|"
 	 ['gentoo']="dev-python/psycopg"
-	   ['rhel']="WARNING"
-	   ['suse']="WARNING"
-	['default']="WARNING"
+	   ['rhel']="WARNING|"
+	   ['suse']="WARNING|"
+	['default']="WARNING|"
 	)
 
 declare -A pkg_python3=(
@@ -741,8 +741,8 @@ declare -A pkg_valgrind=(
 	)
 
 declare -A pkg_ulogd=(
-	 ['centos']="WARNING"
-	   ['rhel']="WARNING"
+	 ['centos']="WARNING|"
+	   ['rhel']="WARNING|"
 	 ['gentoo']="app-admin/ulogd"
 	['default']="ulogd"
 	)
