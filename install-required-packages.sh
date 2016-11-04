@@ -482,9 +482,9 @@ declare -A pkg_autoconf_archive=(
 	['default']="autoconf-archive"
 
 	# exceptions
-       ['centos-6']="WARNING/-"
-         ['rhel-6']="WARNING/-"
-         ['rhel-7']="WARNING/-"
+       ['centos-6']=""
+         ['rhel-6']=""
+         ['rhel-7']=""
 	)
 
 declare -A pkg_autogen=(
@@ -492,8 +492,8 @@ declare -A pkg_autogen=(
 	['default']="autogen"
 
 	# exceptions
-       ['centos-6']="WARNING/-"
-         ['rhel-6']="WARNING/-"
+       ['centos-6']=""
+         ['rhel-6']=""
 	)
 
 declare -A pkg_automake=(
@@ -614,11 +614,11 @@ declare -A pkg_nodejs=(
 	['default']="nodejs"
 
 	# exceptions
-	  ['rhel-6']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
-	  ['rhel-7']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
-	['centos-6']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
-	['debian-6']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
-	['debian-7']="WARNING/To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	  ['rhel-6']="WARNING|To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	  ['rhel-7']="WARNING|To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	['centos-6']="WARNING|To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	['debian-6']="WARNING|To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	['debian-7']="WARNING|To install nodejs check: https://nodejs.org/en/download/package-manager/"
 	)
 
 declare -A pkg_pkg_config=(
@@ -675,31 +675,31 @@ declare -A pkg_python_yaml=(
 
 declare -A pkg_python3_pip=(
 	   ['arch']="python-pip"
-	 ['centos']="WARNING/-"
+	 ['centos']=""
 	 ['gentoo']="dev-python/pip"
-	   ['rhel']="WARNING/-"
+	   ['rhel']=""
 	['default']="python3-pip"
 	)
 
 declare -A pkg_python3_yaml=(
 	   ['arch']="python-yaml"
 	 ['centos']="python3-PyYAML"
-	 ['centos']="WARNING/-"
+	 ['centos']=""
 	 ['debian']="python3-yaml"
 	 ['gentoo']="dev-python/pyyaml"
-	   ['rhel']="WARNING/-"
+	   ['rhel']=""
 	   ['suse']="python3-PyYAML"
 	['default']="python3-yaml"
 	)
 
 declare -A pkg_python3_mysqldb=(
-	   ['arch']="WARNING/-"
-	 ['centos']="WARNING/-"
-	 ['debian']="WARNING/-"
+	   ['arch']=""
+	 ['centos']=""
+	 ['debian']=""
 	 ['gentoo']="dev-python/mysqlclient"
-	   ['rhel']="WARNING/-"
-	   ['suse']="WARNING/-"
-	['default']="WARNING/-"
+	   ['rhel']=""
+	   ['suse']=""
+	['default']=""
 
 	# exceptions
 	['ubuntu-16.04']="python3-mysqldb"
@@ -707,12 +707,12 @@ declare -A pkg_python3_mysqldb=(
 
 declare -A pkg_python3_psycopg2=(
 	   ['arch']="python-psycopg2"
-	 ['centos']="WARNING/-"
-	 ['debian']="WARNING/-"
+	 ['centos']=""
+	 ['debian']=""
 	 ['gentoo']="dev-python/psycopg"
-	   ['rhel']="WARNING/-"
-	   ['suse']="WARNING/-"
-	['default']="WARNING/-"
+	   ['rhel']=""
+	   ['suse']=""
+	['default']=""
 	)
 
 declare -A pkg_python3=(
@@ -741,8 +741,8 @@ declare -A pkg_valgrind=(
 	)
 
 declare -A pkg_ulogd=(
-	 ['centos']="WARNING/-"
-	   ['rhel']="WARNING/-"
+	 ['centos']=""
+	   ['rhel']=""
 	 ['gentoo']="app-admin/ulogd"
 	['default']="ulogd"
 	)
@@ -774,18 +774,16 @@ suitable_package() {
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['${tree}']}"
 	[ -z "${p}" ] && eval "p=\${pkg_${package}['default']}"
 
-	if [[ "${p}" =~ ^(ERROR|WARNING|INFO)/.* ]]
+	if [[ "${p/|*}" =~ ^(ERROR|WARNING|INFO)$ ]]
 		then
-		echo >&2 "${p/\/*/}"
+		echo >&2 "${p/|*/}"
 		echo >&2 "package ${1} is not available in this system."
-		echo >&2 "${p/*\//}"
-		echo >&2
+		echo >&2 "${p/*|/}"
 		return 1
 	elif [ -z "${p}" ]
 		then
 		echo >&2 "WARNING"
 		echo >&2 "package ${1} is not availabe in this system."
-		echo >&2
 		return 1
 	else
 		if [ ${IGNORE_INSTALLED} -eq 0 ]
@@ -1318,6 +1316,7 @@ Package Manager : ${package_installer}
 Packages Tree   : ${tree}
 Detection Method: ${detection}
 Default Python v: ${pv} $([ ${pv} -eq 2 -a ${PACKAGES_NETDATA_PYTHON3} -eq 1 ] && echo "(will install python3 too)")
+
 EOF
 
 PACKAGES_TO_INSTALL=( $(packages | sort -u) )
