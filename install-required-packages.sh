@@ -29,6 +29,7 @@ PACKAGES_NETDATA_SENSORS=${PACKAGES_NETDATA_SENSORS-0}
 # Check which package managers are available
 lsb_release=$(which lsb_release 2>/dev/null || command -v lsb_release 2>/dev/null)
 emerge=$(which emerge 2>/dev/null || command -v emerge 2>/dev/null)
+equo=$(which equo 2>/dev/null || command -v equo 2>/dev/null)
 apt_get=$(which apt-get 2>/dev/null || command -v apt-get 2>/dev/null)
 yum=$(which yum 2>/dev/null || command -v yum 2>/dev/null)
 dnf=$(which dnf 2>/dev/null || command -v dnf 2>/dev/null)
@@ -59,6 +60,7 @@ Supported distributions (DD):
     - arch           (all Arch Linux derivatives)
     - centos         (all CentOS derivatives)
     - gentoo         (all Gentoo Linux derivatives)
+    - sabayon        (all Sabayon Linux derivatives)
     - debian, ubuntu (all Debian and Ubuntu derivatives)
     - redhat, fedora (all Red Hat and Fedora derivatives)
     - suse, opensuse (all SuSe and openSuSe derivatives)
@@ -68,6 +70,7 @@ Supported installers (IN):
     - apt-get        all Debian / Ubuntu Linux derivatives
     - dnf            newer Red Hat / Fedora Linux
     - emerge         all Gentoo Linux derivatives
+    - equo           all Sabayon Linux derivatives
     - pacman         all Arch Linux derivatives
     - yum            all Red Hat / Fedora / CentOS Linux derivatives
     - zypper         all SuSe Linux derivatives
@@ -172,7 +175,7 @@ get_os_release() {
 		for x in "${ID}" ${ID_LIKE}
 		do
 			case "${x,,}" in
-				arch|centos|debian|fedora|gentoo|rhel|ubuntu|suse)
+				arch|centos|debian|fedora|gentoo|sabayon|rhel|ubuntu|suse)
 					distribution="${x}"
 					version="${VERSION_ID}"
 					codename="${VERSION}"
@@ -266,7 +269,7 @@ user_picks_distribution() {
 	echo >&2
 	echo >&2 "I NEED YOUR HELP"
 	echo >&2 "It seems I cannot detect your system automatically."
-	if [ -z "${emerge}" -a -z "${apt_get}" -a -z "${yum}" -a -z "${dnf}" -a -z "${pacman}" ]
+	if [ -z ${equo} -a -z "${emerge}" -a -z "${apt_get}" -a -z "${yum}" -a -z "${dnf}" -a -z "${pacman}" ]
 		then
 		echo >&2 "And it seems I cannot find a known package manager in this system."
 		echo >&2 "Please open a github issue to help us support your system too."
@@ -282,6 +285,7 @@ user_picks_distribution() {
 	[ ! -z "${zypper}"  ] && echo >&2 " - SuSe based (installer is: zypper)" && opts="${opts} zypper"
 	[ ! -z "${pacman}"  ] && echo >&2 " - Arch Linux based (installer is: pacman)" && opts="${opts} pacman"
 	[ ! -z "${emerge}"  ] && echo >&2 " - Gentoo based (installer is: emerge)" && opts="${opts} emerge"
+	[ ! -z "${equo}"    ] && echo >&2 " - Sabayon based (installer is: equo)" && opts="${opts} equo"
 	echo >&2
 
 	REPLY=
@@ -321,6 +325,17 @@ detect_package_manager_from_distribution() {
 			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${pacman}" ]
 				then
 				echo >&2 "command 'pacman' is required to install packages on a '${distribution} ${version}' system."
+				exit 1
+			fi
+			;;
+
+		sabayon*)
+			package_installer="install_equo"
+			tree="sabayon"
+			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${equo}" ]
+				then
+				echo >&2 "command 'equo' is required to install packages on a '${distribution} ${version}' system."
+				# Maybe offer to fall back on emerge? Both installers exist in Sabayon...
 				exit 1
 			fi
 			;;
@@ -405,6 +420,14 @@ check_package_manager() {
 			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${dnf}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_dnf"
 			tree="rhel"
+			detection="user-input"
+			return 0
+			;;
+
+		equo)
+			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${equo}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_equo"
+			tree="sabayon"
 			detection="user-input"
 			return 0
 			;;
@@ -503,6 +526,7 @@ declare -A pkg_automake=(
 
 declare -A pkg_curl=(
 	 ['gentoo']="net-misc/curl"
+	['sabayon']="net-misc/curl"
 	['default']="curl"
 	)
 
@@ -524,6 +548,7 @@ declare -A pkg_gdb=(
 declare -A pkg_iproute2=(
 	 ['debian']="iproute2"
 	 ['gentoo']="sys-apps/iproute2"
+	['sabayon']="sys-apps/iproute2"
 	['default']="iproute"
 
 	# exceptions
@@ -550,6 +575,7 @@ declare -A pkg_libz_dev=(
 	 ['centos']="zlib-devel"
 	 ['debian']="zlib1g-dev"
 	 ['gentoo']="sys-libs/zlib"
+	['sabayon']="sys-libs/zlib"
 	   ['rhel']="zlib-devel"
 	   ['suse']="zlib-devel"
 	['default']=""
@@ -560,6 +586,7 @@ declare -A pkg_libuuid_dev=(
 	 ['centos']="libuuid-devel"
 	 ['debian']="uuid-dev"
 	 ['gentoo']="sys-apps/util-linux"
+	['sabayon']="sys-apps/util-linux"
 	   ['rhel']="libuuid-devel"
 	   ['suse']="libuuid-devel"
 	['default']=""
@@ -570,6 +597,7 @@ declare -A pkg_libmnl_dev=(
 	 ['centos']="libmnl-devel"
 	 ['debian']="libmnl-dev"
 	 ['gentoo']="net-libs/libmnl"
+	['sabayon']="net-libs/libmnl"
 	   ['rhel']="libmnl-devel"
 	   ['suse']="libmnl0"
 	['default']=""
@@ -580,6 +608,7 @@ declare -A pkg_lm_sensors=(
 	 ['centos']="lm_sensors"
 	 ['debian']="lm-sensors"
 	 ['gentoo']="sys-apps/lm_sensors"
+	['sabayon']="sys-apps/lm_sensors"
 	   ['rhel']="lm_sensors"
 	   ['suse']="sensors"
 	['default']="lm_sensors"
@@ -595,6 +624,7 @@ declare -A pkg_netcat=(
 	 ['centos']="nmap-ncat"
 	 ['debian']="netcat"
 	 ['gentoo']="net-analyzer/netcat"
+	['sabayon']="net-analyzer/gnu-netcat"
 	   ['rhel']="nmap-ncat"
 	   ['suse']="netcat-openbsd"
 	['default']="netcat"
@@ -626,6 +656,7 @@ declare -A pkg_pkg_config=(
 	 ['centos']="pkgconfig"
 	 ['debian']="pkg-config"
 	 ['gentoo']="dev-util/pkgconfig"
+	['sabayon']="virtual/pkgconfig"
 	   ['rhel']="pkgconfig"
 	   ['suse']="pkg-config"
 	['default']="pkg-config"
@@ -633,6 +664,7 @@ declare -A pkg_pkg_config=(
 
 declare -A pkg_python=(
 	 ['gentoo']="dev-lang/python"
+	['sabayon']="dev-lang/python:2.7"
 	['default']="python"
 	)
 
@@ -641,6 +673,7 @@ declare -A pkg_python_mysqldb=(
 	 ['centos']="MySQL-python"
 	 ['debian']="python-mysqldb"
 	 ['gentoo']="dev-python/mysqlclient"
+	['sabayon']="dev-python/mysqlclient"
 	   ['rhel']="MySQL-python"
 	   ['suse']="python-MySQL-python"
 	['default']="python-mysql"
@@ -654,6 +687,7 @@ declare -A pkg_python_psycopg2=(
 	 ['centos']="python-psycopg2"
 	 ['debian']="python-psycopg2"
 	 ['gentoo']="dev-python/psycopg"
+	['sabayon']="dev-python/psycopg:2"
 	   ['rhel']="python-psycopg2"
 	   ['suse']="python-psycopg2"
 	['default']="python-psycopg2"
@@ -661,12 +695,14 @@ declare -A pkg_python_psycopg2=(
 
 declare -A pkg_python_pip=(
 	 ['gentoo']="dev-python/pip"
+	['sabayon']="dev-python/pip"
 	['default']="python-pip"
 	)
 
 declare -A pkg_python_yaml=(
 	   ['arch']="python2-yaml"
 	 ['gentoo']="dev-python/pyyaml"
+	['sabayon']="dev-python/pyyaml"
 	 ['centos']="PyYAML"
 	   ['rhel']="PyYAML"
 	   ['suse']="python-PyYAML"
@@ -677,6 +713,7 @@ declare -A pkg_python3_pip=(
 	   ['arch']="python-pip"
 	 ['centos']="WARNING|"
 	 ['gentoo']="dev-python/pip"
+	['sabayon']="dev-python/pip"
 	   ['rhel']="WARNING|"
 	['default']="python3-pip"
 	)
@@ -687,6 +724,7 @@ declare -A pkg_python3_yaml=(
 	 ['centos']="WARNING|"
 	 ['debian']="python3-yaml"
 	 ['gentoo']="dev-python/pyyaml"
+	['sabayon']="dev-python/pyyaml"
 	   ['rhel']="WARNING|"
 	   ['suse']="python3-PyYAML"
 	['default']="python3-yaml"
@@ -697,6 +735,7 @@ declare -A pkg_python3_mysqldb=(
 	 ['centos']="WARNING|"
 	 ['debian']="WARNING|"
 	 ['gentoo']="dev-python/mysqlclient"
+	['sabayon']="dev-python/mysqlclient"
 	   ['rhel']="WARNING|"
 	   ['suse']="WARNING|"
 	['default']="WARNING|"
@@ -710,6 +749,7 @@ declare -A pkg_python3_psycopg2=(
 	 ['centos']="WARNING|"
 	 ['debian']="WARNING|"
 	 ['gentoo']="dev-python/psycopg"
+	['sabayon']="dev-python/psycopg:2"
 	   ['rhel']="WARNING|"
 	   ['suse']="WARNING|"
 	['default']="WARNING|"
@@ -717,11 +757,13 @@ declare -A pkg_python3_psycopg2=(
 
 declare -A pkg_python3=(
 	 ['gentoo']="dev-lang/python"
+	['sabayon']="dev-lang/python:3.4"
 	['default']="python3"
 	)
 
 declare -A pkg_screen=(
 	 ['gentoo']="app-misc/screen"
+	['sabayon']="app-misc/screen"
 	['default']="screen"
 	)
 
@@ -1055,6 +1097,31 @@ install_emerge() {
 
 	# install the required packages
 	run ${sudo} emerge ${opts} -v --noreplace "${@}"
+}
+
+validate_install_equo() {
+	echo >&2 " > Checking if package '${*}' is installed..."
+	equo s --installed "${*}" >/dev/null 2>&1 || echo "${*}"
+}
+
+install_equo() {
+	# download the latest package info
+	if [ "${DRYRUN}" -eq 1 ]
+		then
+		echo >&2 " >> IMPORTANT << "
+		echo >&2 "    Please make sure your system is up to date"
+		echo >&2 "    by running:  ${sudo} equo up  "
+		echo >&2 
+	fi
+
+	local opts="-av"
+	if [ ${NON_INTERACTIVE} -eq 1 ]
+		then
+		opts="-v"
+	fi
+
+	# install the required packages
+	run ${sudo} equo i ${opts} "${@}"
 }
 
 validate_install_pacman() {
