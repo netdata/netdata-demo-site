@@ -175,7 +175,7 @@ get_os_release() {
 		for x in "${ID}" ${ID_LIKE}
 		do
 			case "${x,,}" in
-				arch|centos|debian|fedora|gentoo|sabayon|rhel|ubuntu|suse)
+				arch|centos|debian|fedora|gentoo|sabayon|rhel|ubuntu|suse|sles)
 					distribution="${x}"
 					version="${VERSION_ID}"
 					codename="${VERSION}"
@@ -384,7 +384,7 @@ detect_package_manager_from_distribution() {
 			fi
 			;;
 
-		suse*|opensuse*)
+		suse*|opensuse*|sles*)
 			package_installer="install_zypper"
 			tree="suse"
 			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${zypper}" ]
