@@ -375,9 +375,9 @@ detect_package_manager_from_distribution() {
 		fedora*|redhat*|red\ hat*|rhel*)
 			package_installer=
 			tree="rhel"
-			[ ${IGNORE_INSTALLED} -eq 0 -a ! -z "${yum}" ] && package_installer="install_yum"
-			[ ${IGNORE_INSTALLED} -eq 0 -a ! -z "${dnf}" ] && package_installer="install_dnf"
-			if [ -z "${package_installer}" ]
+			[ ! -z "${dnf}" ] && package_installer="install_dnf"
+			[ ! -z "${yum}" ] && package_installer="install_yum"
+			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${package_installer}" ]
 				then
 				echo >&2 "command 'yum' or 'dnf' is required to install packages on a '${distribution} ${version}' system."
 				exit 1
