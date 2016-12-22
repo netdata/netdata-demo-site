@@ -787,6 +787,9 @@ declare -A pkg_ulogd=(
 	   ['rhel']="WARNING|"
 	 ['gentoo']="app-admin/ulogd"
 	['default']="ulogd"
+
+	# exceptions
+	['ubuntu-16.10']="ulogd2"
 	)
 
 declare -A pkg_unzip=(
@@ -898,6 +901,7 @@ packages() {
 		require_cmd iptables     || suitable_package iptables
 		require_cmd ipset        || suitable_package ipset
 		require_cmd ulogd ulogd2 || suitable_package ulogd
+		require_cmd traceroute   || suitable_package traceroute
 	fi
 
 	if [ ${PACKAGES_UPDATE_IPSETS} -ne 0 ]
