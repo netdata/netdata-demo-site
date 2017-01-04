@@ -25,7 +25,7 @@ echo
 echo "Building firehol..."
 cd /usr/src/firehol.git || exit 1
 ./autogen.sh || exit 1
-./configure --prefix=/usr --sysconfdir=/etc --disable-man --disable-doc || exit 1
+./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-man --disable-doc || exit 1
 make || exit 1
 make install || exit 1
 
