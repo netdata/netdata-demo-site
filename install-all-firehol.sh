@@ -31,7 +31,7 @@ echo
 echo "Building iprange..."
 cd /usr/src/iprange.git || exit 1
 ./autogen.sh || exit 1
-./configure --prefix=/usr CFLAGS="-march=native -O3" --disable-man || exit 1
+./configure --prefix=/usr CFLAGS="-O2" --disable-man || exit 1
 make clean
 make || exit 1
 make install || exit 1
