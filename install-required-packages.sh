@@ -26,14 +26,17 @@ PACKAGES_UPDATE_IPSETS=${PACKAGES_UPDATE_IPSETS-0}
 PACKAGES_NETDATA_DEMO_SITE=${PACKAGES_NETDATA_DEMO_SITE-0}
 PACKAGES_NETDATA_SENSORS=${PACKAGES_NETDATA_SENSORS-0}
 
-# Check which package managers are available
+# needed commands
 lsb_release=$(which lsb_release 2>/dev/null || command -v lsb_release 2>/dev/null)
+
+# Check which package managers are available
+apk=$(which apk 2>/dev/null || command -v apk 2>/dev/null)
+apt_get=$(which apt-get 2>/dev/null || command -v apt-get 2>/dev/null)
+dnf=$(which dnf 2>/dev/null || command -v dnf 2>/dev/null)
 emerge=$(which emerge 2>/dev/null || command -v emerge 2>/dev/null)
 equo=$(which equo 2>/dev/null || command -v equo 2>/dev/null)
-apt_get=$(which apt-get 2>/dev/null || command -v apt-get 2>/dev/null)
-yum=$(which yum 2>/dev/null || command -v yum 2>/dev/null)
-dnf=$(which dnf 2>/dev/null || command -v dnf 2>/dev/null)
 pacman=$(which pacman 2>/dev/null || command -v pacman 2>/dev/null)
+yum=$(which yum 2>/dev/null || command -v yum 2>/dev/null)
 zypper=$(which zypper 2>/dev/null || command -v zypper 2>/dev/null)
 
 distribution=
@@ -74,6 +77,7 @@ Supported installers (IN):
     - pacman         all Arch Linux derivatives
     - yum            all Red Hat / Fedora / CentOS Linux derivatives
     - zypper         all SuSe Linux derivatives
+    - apk            all Alpine derivatives
 
 Supported packages (you can append many of them):
 
@@ -175,7 +179,7 @@ get_os_release() {
 		for x in "${ID}" ${ID_LIKE}
 		do
 			case "${x,,}" in
-				arch|centos|debian|fedora|gentoo|sabayon|rhel|ubuntu|suse|sles)
+				alpine|arch|centos|debian|fedora|gentoo|sabayon|rhel|ubuntu|suse|sles)
 					distribution="${x}"
 					version="${VERSION_ID}"
 					codename="${VERSION}"
@@ -269,7 +273,7 @@ user_picks_distribution() {
 	echo >&2
 	echo >&2 "I NEED YOUR HELP"
 	echo >&2 "It seems I cannot detect your system automatically."
-	if [ -z ${equo} -a -z "${emerge}" -a -z "${apt_get}" -a -z "${yum}" -a -z "${dnf}" -a -z "${pacman}" ]
+	if [ -z "${equo}" -a -z "${emerge}" -a -z "${apt_get}" -a -z "${yum}" -a -z "${dnf}" -a -z "${pacman}" -a -z "${apk}" ]
 		then
 		echo >&2 "And it seems I cannot find a known package manager in this system."
 		echo >&2 "Please open a github issue to help us support your system too."
@@ -286,6 +290,7 @@ user_picks_distribution() {
 	[ ! -z "${pacman}"  ] && echo >&2 " - Arch Linux based (installer is: pacman)" && opts="${opts} pacman"
 	[ ! -z "${emerge}"  ] && echo >&2 " - Gentoo based (installer is: emerge)" && opts="${opts} emerge"
 	[ ! -z "${equo}"    ] && echo >&2 " - Sabayon based (installer is: equo)" && opts="${opts} equo"
+	[ ! -z "${apk}"     ] && echo >&2 " - Alpine Linux based (installer is: apk)" && opts="${opts} apk"
 	echo >&2
 
 	REPLY=
@@ -336,6 +341,16 @@ detect_package_manager_from_distribution() {
 				then
 				echo >&2 "command 'equo' is required to install packages on a '${distribution} ${version}' system."
 				# Maybe offer to fall back on emerge? Both installers exist in Sabayon...
+				exit 1
+			fi
+			;;
+
+		alpine*)
+			package_installer="install_apk"
+			tree="alpine"
+			if [ ${IGNORE_INSTALLED} -eq 0 -a -z "${apk}" ]
+				then
+				echo >&2 "command 'apk' is required to install packages on a '${distribution} ${version}' system."
 				exit 1
 			fi
 			;;
@@ -424,6 +439,14 @@ check_package_manager() {
 			return 0
 			;;
 
+		apk)
+			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${apk}" ] && echo >&2 "${1} is not available." && return 1
+			package_installer="install_apk"
+			tree="alpine"
+			detection="user-input"
+			return 0
+			;;
+
 		equo)
 			[ ${IGNORE_INSTALLED} -eq 0 -a -z "${equo}" ] && echo >&2 "${1} is not available." && return 1
 			package_installer="install_equo"
@@ -493,6 +516,11 @@ require_cmd() {
 	return 1
 }
 
+declare -A pkg_distro_sdk=(
+	 ['alpine']="alpine-sdk"
+	['default']="NOTREQUIRED"
+	)
+
 declare -A pkg_autoconf=(
 	 ['gentoo']="sys-devel/autoconf"
 	['default']="autoconf"
@@ -502,6 +530,7 @@ declare -A pkg_autoconf=(
 # https://github.com/firehol/netdata/pull/450
 declare -A pkg_autoconf_archive=(
 	 ['gentoo']="sys-devel/autoconf-archive"
+	 ['alpine']="WARNING|"
 	['default']="autoconf-archive"
 
 	# exceptions
@@ -512,6 +541,7 @@ declare -A pkg_autoconf_archive=(
 
 declare -A pkg_autogen=(
 	 ['gentoo']="sys-devel/autogen"
+	 ['alpine']="WARNING|"
 	['default']="autogen"
 
 	# exceptions
@@ -546,6 +576,7 @@ declare -A pkg_gdb=(
 	)
 
 declare -A pkg_iproute2=(
+	 ['alpine']="iproute2"
 	 ['debian']="iproute2"
 	 ['gentoo']="sys-apps/iproute2"
 	['sabayon']="sys-apps/iproute2"
@@ -571,6 +602,7 @@ declare -A pkg_iptables=(
 	)
 
 declare -A pkg_libz_dev=(
+	 ['alpine']="zlib-dev"
 	   ['arch']="zlib"
 	 ['centos']="zlib-devel"
 	 ['debian']="zlib1g-dev"
@@ -582,6 +614,7 @@ declare -A pkg_libz_dev=(
 	)
 
 declare -A pkg_libuuid_dev=(
+	 ['alpine']="util-linux-dev"
 	   ['arch']="util-linux"
 	 ['centos']="libuuid-devel"
 	 ['debian']="uuid-dev"
@@ -593,6 +626,7 @@ declare -A pkg_libuuid_dev=(
 	)
 
 declare -A pkg_libmnl_dev=(
+	 ['alpine']="libmnl-dev"
 	   ['arch']="libmnl"
 	 ['centos']="libmnl-devel"
 	 ['debian']="libmnl-dev"
@@ -604,6 +638,7 @@ declare -A pkg_libmnl_dev=(
 	)
 
 declare -A pkg_lm_sensors=(
+     ['alpine']="lm_sensors"
 	   ['arch']="lm_sensors"
 	 ['centos']="lm_sensors"
 	 ['debian']="lm-sensors"
@@ -620,6 +655,7 @@ declare -A pkg_make=(
 	)
 
 declare -A pkg_netcat=(
+	 ['alpine']="nmap-ncat"
 	   ['arch']="netcat"
 	 ['centos']="nmap-ncat"
 	 ['debian']="netcat"
@@ -630,7 +666,7 @@ declare -A pkg_netcat=(
 	['default']="netcat"
 
 	# exceptions
-       ['centos-6']="nc"
+   ['centos-6']="nc"
 	 ['rhel-6']="nc"
 	)
 
@@ -652,6 +688,7 @@ declare -A pkg_nodejs=(
 	)
 
 declare -A pkg_pkg_config=(
+	 ['alpine']="pkgconfig"
 	   ['arch']="pkgconfig"
 	 ['centos']="pkgconfig"
 	 ['debian']="pkg-config"
@@ -669,6 +706,7 @@ declare -A pkg_python=(
 	)
 
 declare -A pkg_python_mysqldb=(
+	 ['alpine']="py-mysqldb"
 	   ['arch']="mysql-python"
 	 ['centos']="MySQL-python"
 	 ['debian']="python-mysqldb"
@@ -682,55 +720,8 @@ declare -A pkg_python_mysqldb=(
   ['fedora-24']="python2-mysql"
 	)
 
-declare -A pkg_python_psycopg2=(
-	   ['arch']="python2-psycopg2"
-	 ['centos']="python-psycopg2"
-	 ['debian']="python-psycopg2"
-	 ['gentoo']="dev-python/psycopg"
-	['sabayon']="dev-python/psycopg:2"
-	   ['rhel']="python-psycopg2"
-	   ['suse']="python-psycopg2"
-	['default']="python-psycopg2"
-	)
-
-declare -A pkg_python_pip=(
-	 ['gentoo']="dev-python/pip"
-	['sabayon']="dev-python/pip"
-	['default']="python-pip"
-	)
-
-declare -A pkg_python_yaml=(
-	   ['arch']="python2-yaml"
-	 ['gentoo']="dev-python/pyyaml"
-	['sabayon']="dev-python/pyyaml"
-	 ['centos']="PyYAML"
-	   ['rhel']="PyYAML"
-	   ['suse']="python-PyYAML"
-	['default']="python-yaml"
-	)
-
-declare -A pkg_python3_pip=(
-	   ['arch']="python-pip"
-	 ['centos']="WARNING|"
-	 ['gentoo']="dev-python/pip"
-	['sabayon']="dev-python/pip"
-	   ['rhel']="WARNING|"
-	['default']="python3-pip"
-	)
-
-declare -A pkg_python3_yaml=(
-	   ['arch']="python-yaml"
-	 ['centos']="python3-PyYAML"
-	 ['centos']="WARNING|"
-	 ['debian']="python3-yaml"
-	 ['gentoo']="dev-python/pyyaml"
-	['sabayon']="dev-python/pyyaml"
-	   ['rhel']="WARNING|"
-	   ['suse']="python3-PyYAML"
-	['default']="python3-yaml"
-	)
-
 declare -A pkg_python3_mysqldb=(
+	 ['alpine']="WARNING|"
 	   ['arch']="WARNING|"
 	 ['centos']="WARNING|"
 	 ['debian']="WARNING|"
@@ -744,7 +735,20 @@ declare -A pkg_python3_mysqldb=(
 	['ubuntu-16.04']="python3-mysqldb"
 	)
 
+declare -A pkg_python_psycopg2=(
+	 ['alpine']="py-psycopg2"
+	   ['arch']="python2-psycopg2"
+	 ['centos']="python-psycopg2"
+	 ['debian']="python-psycopg2"
+	 ['gentoo']="dev-python/psycopg"
+	['sabayon']="dev-python/psycopg:2"
+	   ['rhel']="python-psycopg2"
+	   ['suse']="python-psycopg2"
+	['default']="python-psycopg2"
+	)
+
 declare -A pkg_python3_psycopg2=(
+	 ['alpine']="py3-psycopg2"
 	   ['arch']="python-psycopg2"
 	 ['centos']="WARNING|"
 	 ['debian']="WARNING|"
@@ -753,6 +757,71 @@ declare -A pkg_python3_psycopg2=(
 	   ['rhel']="WARNING|"
 	   ['suse']="WARNING|"
 	['default']="WARNING|"
+	)
+
+declare -A pkg_python_requests=(
+	 ['alpine']="py-requests"
+	   ['arch']="python2-requests"
+	 ['centos']="python-requests"
+	 ['debian']="python-requests"
+	 ['gentoo']="dev-python/requests"
+	['sabayon']="dev-python/requests"
+	   ['rhel']="python-requests"
+	   ['suse']="python-requests"
+	['default']="python-requests"
+	)
+
+declare -A pkg_python3_requests=(
+	 ['alpine']="py3-requests"
+	   ['arch']="python-requests"
+	 ['centos']="WARNING|"
+	 ['debian']="WARNING|"
+	 ['gentoo']="dev-python/requests"
+	['sabayon']="dev-python/requests"
+	   ['rhel']="WARNING|"
+	   ['suse']="WARNING|"
+	['default']="WARNING|"
+	)
+
+declare -A pkg_python_pip=(
+	 ['alpine']="py-pip"
+	 ['gentoo']="dev-python/pip"
+	['sabayon']="dev-python/pip"
+	['default']="python-pip"
+	)
+
+declare -A pkg_python3_pip=(
+	 ['alpine']="py3-pip"
+	   ['arch']="python-pip"
+	 ['centos']="WARNING|"
+	 ['gentoo']="dev-python/pip"
+	['sabayon']="dev-python/pip"
+	   ['rhel']="WARNING|"
+	['default']="python3-pip"
+	)
+
+declare -A pkg_python_yaml=(
+	 ['alpine']="py-yaml"
+	   ['arch']="python2-yaml"
+	 ['gentoo']="dev-python/pyyaml"
+	['sabayon']="dev-python/pyyaml"
+	 ['centos']="PyYAML"
+	   ['rhel']="PyYAML"
+	   ['suse']="python-PyYAML"
+	['default']="python-yaml"
+	)
+
+declare -A pkg_python3_yaml=(
+	 ['alpine']="py3-yaml"
+	   ['arch']="python-yaml"
+	 ['centos']="python3-PyYAML"
+	 ['centos']="WARNING|"
+	 ['debian']="python3-yaml"
+	 ['gentoo']="dev-python/pyyaml"
+	['sabayon']="dev-python/pyyaml"
+	   ['rhel']="WARNING|"
+	   ['suse']="python3-PyYAML"
+	['default']="python3-yaml"
 	)
 
 declare -A pkg_python3=(
@@ -773,6 +842,7 @@ declare -A pkg_tcpdump=(
 	)
 
 declare -A pkg_traceroute=(
+	 ['alpine']=" "
 	 ['gentoo']="net-analyzer/traceroute"
 	['default']="traceroute"
 	)
@@ -831,6 +901,9 @@ suitable_package() {
 		fi
 		echo >&2
 		return 1
+	elif [ "${p}" = "NOTREQUIRED" ]
+		then
+		return 0
 	elif [ -z "${p}" ]
 		then
 		echo >&2 "WARNING"
@@ -853,6 +926,8 @@ packages() {
 
 	# -------------------------------------------------------------------------
 	# basic build environment
+
+	suitable_package distro-sdk
 
 	require_cmd git        || suitable_package git
 	require_cmd gcc        || suitable_package gcc
@@ -945,6 +1020,7 @@ packages() {
 		require_cmd python || suitable_package python
 
 		suitable_package python-yaml
+		suitable_package python-requests
 		# suitable_package python-pip
 
 		[ ${PACKAGES_NETDATA_PYTHON_MYSQL}    -ne 0 ] && suitable_package python-mysqldb
@@ -959,6 +1035,7 @@ packages() {
 		require_cmd python3 || suitable_package python3
 
 		suitable_package python3-yaml
+		suitable_package python3-requests
 		# suitable_package python3-pip
 
 		[ ${PACKAGES_NETDATA_PYTHON_MYSQL}    -ne 0 ] && suitable_package python3-mysqldb
@@ -995,6 +1072,9 @@ if [ ${UID} -ne 0 ]
 	sudo="sudo"
 fi
 
+# -----------------------------------------------------------------------------
+# debian / ubuntu
+
 validate_install_apt_get() {
 	dpkg -l >/dev/null 2>&1 "${*}" || echo "${*}"
 }
@@ -1021,6 +1101,10 @@ install_apt_get() {
 	run ${sudo} apt-get ${opts} install "${@}"
 }
 
+
+# -----------------------------------------------------------------------------
+# centos / rhel
+
 validate_install_yum() {
 	echo >&2 " > Checking if package '${*}' is installed..."
 	yum list installed "${*}" >/dev/null 2>&1 || echo "${*}"
@@ -1046,6 +1130,10 @@ install_yum() {
 	# install the required packages
 	run ${sudo} yum ${opts} install "${@}" # --enablerepo=epel-testing
 }
+
+
+# -----------------------------------------------------------------------------
+# fedora
 
 validate_install_dnf() {
 	echo >&2 " > Checking if package '${*}' is installed..."
@@ -1076,6 +1164,9 @@ install_dnf() {
 	run ${sudo} dnf ${opts} install "${@}"
 }
 
+# -----------------------------------------------------------------------------
+# gentoo
+
 validate_install_emerge() {
 	echo "${*}"
 }
@@ -1103,6 +1194,37 @@ install_emerge() {
 	run ${sudo} emerge ${opts} -v --noreplace "${@}"
 }
 
+
+# -----------------------------------------------------------------------------
+# alpine
+
+validate_install_apk() {
+	echo "${*}"
+}
+
+install_apk() {
+	# download the latest package info
+	if [ "${DRYRUN}" -eq 1 ]
+		then
+		echo >&2 " >> IMPORTANT << "
+		echo >&2 "    Please make sure your system is up to date"
+		echo >&2 "    by running:  ${sudo} apk update  "
+		echo >&2 
+	fi
+
+	local opts="-i"
+	if [ ${NON_INTERACTIVE} -eq 1 ]
+		then
+		opts=""
+	fi
+
+	# install the required packages
+	run ${sudo} apk add ${opts} "${@}"
+}
+
+# -----------------------------------------------------------------------------
+# sabayon
+
 validate_install_equo() {
 	echo >&2 " > Checking if package '${*}' is installed..."
 	equo s --installed "${*}" >/dev/null 2>&1 || echo "${*}"
@@ -1127,6 +1249,9 @@ install_equo() {
 	# install the required packages
 	run ${sudo} equo i ${opts} "${@}"
 }
+
+# -----------------------------------------------------------------------------
+# arch
 
 validate_install_pacman() {
 	echo >&2 " > Checking if package '${*}' is installed..."
@@ -1154,6 +1279,9 @@ install_pacman() {
 		run ${sudo} pacman --needed -S "${@}"
 	fi
 }
+
+# -----------------------------------------------------------------------------
+# suse / opensuse
 
 validate_install_zypper() {
 	rpm -q "${*}" >/dev/null 2>&1 || echo "${*}"
