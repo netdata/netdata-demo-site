@@ -828,6 +828,9 @@ declare -A pkg_python3=(
 	 ['gentoo']="dev-lang/python"
 	['sabayon']="dev-lang/python:3.4"
 	['default']="python3"
+
+	# exceptions
+	['centos-6']="WARNING|"
 	)
 
 declare -A pkg_screen=(
