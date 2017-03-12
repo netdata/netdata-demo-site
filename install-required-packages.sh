@@ -554,6 +554,11 @@ declare -A pkg_automake=(
 	['default']="automake"
 	)
 
+declare -A pkg_bridge_utils=(
+	 ['gentoo']="net-misc/bridge-utils"
+	['default']="bridge-utils"
+	)
+
 declare -A pkg_curl=(
 	 ['gentoo']="net-misc/curl"
 	['sabayon']="net-misc/curl"
@@ -666,8 +671,9 @@ declare -A pkg_netcat=(
 	['default']="netcat"
 
 	# exceptions
-   ['centos-6']="nc"
-	 ['rhel-6']="nc"
+     ['centos-6']="nc"
+       ['rhel-6']="nc"
+ ['alpine-3.1.4']="nc"
 	)
 
 declare -A pkg_nginx=(
@@ -980,6 +986,7 @@ packages() {
 		require_cmd ipset        || suitable_package ipset
 		require_cmd ulogd ulogd2 || suitable_package ulogd
 		require_cmd traceroute   || suitable_package traceroute
+		require_cmd bridge       || suitable_package bridge-utils
 	fi
 
 	if [ ${PACKAGES_UPDATE_IPSETS} -ne 0 ]
@@ -1435,19 +1442,10 @@ do
 			PACKAGES_NETDATA_SENSORS=1
 			;;
 
-		firehol-all)
+		firehol|update-ipsets|firehol-all|fireqos)
 			PACKAGES_IPRANGE=1
 			PACKAGES_FIREHOL=1
 			PACKAGES_FIREQOS=1
-			PACKAGES_UPDATE_IPSETS=1
-			;;
-
-		firehol)
-			PACKAGES_IPRANGE=1
-			PACKAGES_FIREHOL=1
-			;;
-
-		update-ipsets)
 			PACKAGES_IPRANGE=1
 			PACKAGES_UPDATE_IPSETS=1
 			;;
