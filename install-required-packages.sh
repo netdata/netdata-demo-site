@@ -776,6 +776,7 @@ declare -A pkg_python_requests=(
 	['default']="python-requests"
 
 ['alpine-3.1.4']="WARNING|"
+['alpine-3.2.3']="WARNING|"
 	)
 
 declare -A pkg_python3_requests=(
