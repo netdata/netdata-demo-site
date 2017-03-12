@@ -660,7 +660,7 @@ declare -A pkg_make=(
 	)
 
 declare -A pkg_netcat=(
-	 ['alpine']="nmap-ncat"
+	 ['alpine']="netcat-openbsd"
 	   ['arch']="netcat"
 	 ['centos']="nmap-ncat"
 	 ['debian']="netcat"
@@ -673,7 +673,6 @@ declare -A pkg_netcat=(
 	# exceptions
      ['centos-6']="nc"
        ['rhel-6']="nc"
- ['alpine-3.1.4']="nc"
 	)
 
 declare -A pkg_nginx=(
