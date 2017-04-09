@@ -1,7 +1,9 @@
 .idea/
 CMakeLists.txt
 
-gvpe/conf.d/
-gvpe/gvpe.conf
+gvpe/conf.d/gvpe.conf
+gvpe/conf.d/hosts.real
+gvpe/conf.d/hosts.vpn
+gvpe/conf.d/pubkey
 gvpe/keys/
 gvpe/systemd/
