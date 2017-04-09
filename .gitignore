@@ -1,2 +1,7 @@
 .idea/
 CMakeLists.txt
+
+gvpe/conf.d/
+gvpe/gvpe.conf
+gvpe/keys/
+gvpe/systemd/
