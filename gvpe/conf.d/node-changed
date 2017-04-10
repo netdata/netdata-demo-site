@@ -1,12 +1,1 @@
-#!/usr/bin/env bash
-
-cat >&2 <<EOF
-DESTNODE : $DESTNODE
-DESTID   : $DESTID
-DESTSI   : $DESTSI
-DESTIP   : $DESTIP
-DESTPORT : $DESTPORT
-STATE    : $STATE
-EOF
-
-exit 0
+node-up

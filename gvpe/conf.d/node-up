@@ -1,12 +1,36 @@
 #!/usr/bin/env bash
 
 cat >&2 <<EOF
+CONFBASE : $CONFBASE
+IFNAME   : $IFNAME
+IFTYPE   : $IFTYPE
+IFSUBTYPE: $IFSUBTYPE
+IFUPDATA : $IFUPDATA
+NODEID   : $NODEID
+NODENAME : $NODENAME
+MAC      : $MAC
+MTU      : $MTU
+NODES    : $NODES
+
 DESTNODE : $DESTNODE
 DESTID   : $DESTID
 DESTSI   : $DESTSI
 DESTIP   : $DESTIP
 DESTPORT : $DESTPORT
 STATE    : $STATE
+EOF
+
+[ -f $CONFBASE/status/$DESTID ] && source $CONFBASE/status/$DESTID
+
+cat >$CONFBASE/status/$DESTID <<EOF
+nodeid=$DESTID
+name=$DESTNODE
+status=$STATE
+ip=$ip
+si=$DESTSI
+rip=$DESTIP
+ripport=$DESTPORT
+timestamp=$(date +%s)
 EOF
 
 exit 0
