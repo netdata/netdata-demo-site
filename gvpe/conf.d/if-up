@@ -4,64 +4,103 @@ export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbi
 
 set -e
 
+ME="${0}"
+
 run() {
     printf >&2 " > "
-    printf >&2 "%q " "$@"
+    printf >&2 "%q " "${@}"
     printf >&2 "\n"
-    "$@"
+    "${@}"
     return $?
 }
 
+# -----------------------------------------------------------------------------
 # show what is happening
-echo >&2 "if-up    : $0"
-echo >&2 "CONFBASE : $CONFBASE"
-echo >&2 "IFNAME   : $IFNAME"
-echo >&2 "IFTYPE   : $IFTYPE"
-echo >&2 "IFSUBTYPE: $IFSUBTYPE"
-echo >&2 "IFUPDATA : $IFUPDATA"
-echo >&2 "NODEID   : $NODEID"
-echo >&2 "NODENAME : $NODENAME"
-echo >&2 "MAC      : $MAC"
-echo >&2 "MTU      : $MTU"
-echo >&2 "NODES    : $NODES"
 
-# parse the IP and NET from $IFUPDATA
-NET="$(echo "$IFUPDATA" | cut -d '|' -f 1)"
-IP="$(echo "$IFUPDATA" | cut -d '|' -f 2)"
-echo >&2 "IP       : $IP"
-echo >&2 "NET      : $NET"
+cat >&2 <<EOF
+SCRIPT   : ${ME}
+CONFBASE : ${CONFBASE}
+IFNAME   : ${IFNAME}
+IFTYPE   : ${IFTYPE}
+IFSUBTYPE: ${IFSUBTYPE}
+IFUPDATA : ${IFUPDATA}
+NODEID   : ${NODEID}
+NODENAME : ${NODENAME}
+MAC      : ${MAC}
+MTU      : ${MTU}
+NODES    : ${NODES}
+EOF
 
-# bring it up
-run ip link set $IFNAME address $MAC mtu $MTU up
-run ip addr add $IP dev $IFNAME
-run ip route replace $NET dev $IFNAME || run ip route add $NET dev $IFNAME
+# -----------------------------------------------------------------------------
+# parse the IP and NET from ${IFUPDATA}
 
-cd $CONFBASE/status
+NET="$(echo "${IFUPDATA}" | cut -d '|' -f 1)"
+IP="$(echo "${IFUPDATA}" | cut -d '|' -f 2)"
+echo >&2 "IP       : ${IP}"
+echo >&2 "NET      : ${NET}"
+
+# -----------------------------------------------------------------------------
+# bring the interface up
+
+run ip link set ${IFNAME} address ${MAC} mtu ${MTU} up
+run ip addr add ${IP} dev ${IFNAME}
+run ip route replace ${NET} dev ${IFNAME} || \
+	run ip route add ${NET} dev ${IFNAME}
+
+# -----------------------------------------------------------------------------
+# we just connected, mark all nodes down
+
+cd ${CONFBASE}/status
 for x in $(ls * | sort -n)
 do
-	source $x
-	cat >$x <<EOF
-nodeid=$nodeid
-name=$name
-status=down
-ip=$ip
-si=
-rip=${rip}
-ripport=
-timestamp=$(date +%s)
+	source ${x}
+	cat >${x} <<EOF
+nodeid="${nodeid}"
+name="${name}"
+status="down"
+ip="${ip}"
+si=""
+rip="${rip}"
+ripport=""
+timestamp="$(date +%s)"
 EOF
 done
 
-cat >$NODEID <<EOF
-nodeid=$NODEID
-name=$NODENAME
-status=up
-ip=$IP
-si=
-rip=ME
-ripport=
-timestamp=$(date +%s)
+# set our node to up
+cat >${CONFBASE}/status/${NODEID} <<EOF
+nodeid=${NODEID}
+name=${NODENAME}
+status="up"
+ip=${IP}
+si=""
+rip="ME"
+ripport=""
+timestamp="$(date +%s)"
 EOF
 
-exit 0
+# -----------------------------------------------------------------------------
+# initialize the counters
 
+EVENTS=0
+NODES_UP=1
+NODES_DOWN=$((NODES - 1))
+cat >${CONFBASE}/status/status <<EOF
+MYNODENAME=${NODENAME}
+MYNODEID=${NODEID}
+EVENTS=$((EVENTS + 1))
+NODES_ALL=${NODES}
+NODES_UP=${NODES_UP}
+NODES_DOWN=${NODES_DOWN}
+timestamp="$(date +%s)"
+EOF
+
+# -----------------------------------------------------------------------------
+# execute any local action
+
+if [ -x ${CONFBASE}/${ME}.local ]
+	then
+	${CONFBASE}/${ME}.local "${@}"
+	exit $?
+fi
+
+exit 0
