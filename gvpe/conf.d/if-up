@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+
 set -e
 
 run() {
@@ -44,7 +46,7 @@ name=$name
 status=down
 ip=$ip
 si=
-rip=
+rip=${rip}
 ripport=
 timestamp=$(date +%s)
 EOF
@@ -56,9 +58,10 @@ name=$NODENAME
 status=up
 ip=$IP
 si=
-rip=
+rip=ME
 ripport=
 timestamp=$(date +%s)
 EOF
 
 exit 0
+
