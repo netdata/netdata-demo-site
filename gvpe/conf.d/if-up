@@ -51,9 +51,15 @@ run ip route replace ${NET} dev ${IFNAME} || \
 # we just connected, mark all nodes down
 
 cd ${CONFBASE}/status
-for x in $(ls * | sort -n)
+for x in *
 do
+	! [[ "${x}" =~ ^[0-9]+$ ]] && continue
+	[ "${x}" = "${MYNODEID}" ] && continue
+	[ $((x + 0)) -gt ${NODES} ] && rm "${x}" && continue
+
 	source ${x}
+	#eval "mac=\${MAC_${nodeid}-${mac}}; ifupdata=\${IFUPDATA_${nodeid}-${ifupdata}}"
+	eval "mac=\${MAC_${nodeid}-${mac}}"
 	cat >${x} <<EOF
 nodeid="${nodeid}"
 name="${name}"
@@ -62,6 +68,8 @@ ip="${ip}"
 si=""
 rip="${rip}"
 ripport=""
+mac="${mac}"
+ifupdata="${ifupdata}"
 timestamp="$(date +%s)"
 EOF
 done
@@ -75,6 +83,8 @@ ip=${IP}
 si=""
 rip="ME"
 ripport=""
+mac="${MAC}"
+ifupdata="${IFUPDATA}"
 timestamp="$(date +%s)"
 EOF
 

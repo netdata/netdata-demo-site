@@ -4,17 +4,21 @@ export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbi
 
 set -e
 ME="${0}"
-cd $(dirname "${ME}")/status
 
-now=$(date +%s)
+cd /etc/gvpe/status
+
+if [ ! -f ./status ]
+	then
+	echo >&2 "Is GVPE running?"
+	exit 1
+fi
 
 EVENTS=0
 NODES_ALL=0
 NODES_UP=0
 NODES_DOWN=0
 LAST="NEVER"
-
-[ -f status ] && . ./status
+. ./status
 
 cat <<EOF
 
@@ -27,17 +31,23 @@ Up ${NODES_UP}, Down ${NODES_DOWN}, Total ${NODES_ALL} nodes
 
 EOF
 
-printf "%3s %-30s %-15s %-15s %-6s %-20s\n" \
+printf "%3s %-25s %-15s %-25s %-6s %-20s\n" \
 	"ID" "Name" "VPN IP" "REAL IP" "STATUS" "SINCE"
 
 for x in $(ls -t *)
 do
-	[ "${x}" = "status" ] && continue
+	[[ ! "${x}" =~ ^[0-9]+$ ]] && continue
 	[ "${x}" = "${MYNODEID}" ] && continue
 
 	. ./${x}
-	printf "%3u %-30s %-15s %-15s %-6s %-20s\n" \
-		"$((x))" "${name}" "${ip}" "${rip}" "${status}" \
+
+	remote="${rip}"
+	if [ "${status}" = "up" ]
+		then
+		[ "${si}" != "" ] && remote="${si}"
+	fi
+
+	printf "%3u %-25s %-15s %-25s %-6s %-20s\n" \
+		"$((x))" "${name}" "${ip}" "${remote}" "${status}" \
 		"$(date --date=@${timestamp} "+%Y-%m-%d %H:%M:%S")"
 done
-

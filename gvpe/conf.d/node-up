@@ -26,7 +26,7 @@ STATE    : ${STATE}
 EOF
 
 [ -f ${CONFBASE}/status/${DESTID} ] && \
-	source ${CONFBASE}/status/${DESTID}
+	. ${CONFBASE}/status/${DESTID}
 
 cat >${CONFBASE}/status/${DESTID} <<EOF
 nodeid="${DESTID}"
@@ -36,6 +36,8 @@ ip="${ip}"
 si="${DESTSI}"
 rip="${DESTIP}"
 ripport="${DESTPORT}"
+mac="${mac}"
+ifupdata="${ifupdata}"
 timestamp="$(date +%s)"
 EOF
 

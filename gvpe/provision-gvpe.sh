@@ -32,6 +32,12 @@ cat >conf.d/gvpe.conf <<EOF
 # -----------------------------------------------------------------------------
 global
 
+enable-rawip = yes
+ip-proto = 51 # 47 (GRE), 50 (IPSEC, ESP), 51 (IPSEC, AH), 4 (IPIP tunnels), 98 (ENCAP, rfc1241)
+
+enable-icmp = yes
+icmp-type = 0 # 0 (echo-reply), 8 (echo-request), 11 (time-exceeded)
+
 enable-udp = yes
 udp-port = ${PORT} # the external port to listen on (configure your firewall)
 
@@ -84,10 +90,20 @@ serial = $(date +%Y%m%d%H%M%S)
 
 # defaults for all nodes
 compress = yes
+
+
 inherit-tos = yes
-max-retry = 86400
+
+# The maximum interval in seconds between retries to establish a connection to this node.
+max-retry = 600
+
+# Expire packets that couldn't be sent after this many seconds.
 max-ttl = 30
+
+# The maximum number of packets that will be queued.
 max-queue = 1024
+
+# all hosts can be used are routers, but all the other hosts decide if they need it.
 router-priority = 1
 
 EOF
@@ -133,6 +149,7 @@ do
     os=$(echo "${h}"   | cut -d '|' -f 4)
     pip=$(echo "${p}"  | cut -d ':' -f 1)
     port=$(echo "${p}" | cut -d ':' -f 2)
+    ifupdata="${BASE_NETWORK}.0/24|${vip}"
 
     hostname_comment=
     connect="always"
@@ -150,10 +167,9 @@ do
         then
         printf "%-15s %s\n" "${pip}" "${name}" >>conf.d/hosts.real
     fi
-
     printf "%-15s %s\n" "${vip}" "${name}" >>conf.d/hosts.vpn
 
-    cat >conf.d/status/$c <<EOF
+    cat >conf.d/status/${c} <<EOF
 nodeid=${c}
 name=${name}
 status=down
@@ -161,6 +177,8 @@ ip=${vip}
 si=
 rip=${pip}
 ripport=${port}
+mac=
+ifupdata="${ifupdata}"
 timestamp=$(date +%s)
 EOF
 
@@ -174,10 +192,12 @@ on ${name} hostname = 0.0.0.0
 udp-port = ${port}
 tcp-port = ${port}
 connect = ${connect} # ondemand | never | always | disabled
-on ${name} if-up-data = ${BASE_NETWORK}.0/24|${vip}
-# allow-direct = 
-# deny-direct =
+on ${name} if-up-data = ${ifupdata}
+# allow-direct = *
+# deny-direct = *
+# router-priority = 2
 # on ${name} low-power = yes # on laptops
+on ${name} include local.conf
 EOF
 
     cat >systemd/${name}.service <<EOF
@@ -236,6 +256,7 @@ do
     run cp keys/${name}.privkey conf.d/hostkey
     run rsync -HaSPv --delete conf.d/ root@${pip}:/etc/gvpe/
     run rm conf.d/hostkey
+    run ssh "root@${pip}" touch /etc/gvpe/local.conf
     run scp systemd/${name}.service root@${pip}:/etc/systemd/system/gvpe.service || systemd=0
 done
 
