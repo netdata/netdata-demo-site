@@ -86,7 +86,7 @@ rekey = 3600
 # length. Only when the serial matches on both sides of a connection will the
 # connection succeed. This is not a security mechanism and eay to spoof, this
 # mechanism exists to alert users that their config is outdated.
-serial = $(date +%Y%m%d%H%M%S)
+#serial = $(date +%Y%m%d%H%M%S)
 
 # defaults for all nodes
 compress = yes
@@ -105,6 +105,12 @@ max-queue = 1024
 
 # all hosts can be used are routers, but all the other hosts decide if they need it.
 router-priority = 1
+
+EOF
+
+cat >conf.d/gvpe.conf.end <<EOF
+
+# load local configuration overrides
 
 EOF
 
@@ -197,7 +203,12 @@ on ${name} if-up-data = ${ifupdata}
 # deny-direct = *
 # router-priority = 2
 # on ${name} low-power = yes # on laptops
+EOF
+
+    cat >>conf.d/gvpe.conf.end <<EOF
+node = ${name}
 on ${name} include local.conf
+
 EOF
 
     cat >systemd/${name}.service <<EOF
@@ -228,6 +239,9 @@ EOF
         run cp keys/${name} conf.d/pubkey/${name}
     fi
 done
+
+cat conf.d/gvpe.conf.end >>conf.d/gvpe.conf
+rm conf.d/gvpe.conf.end
 
 echo "# END gvpe real" >>conf.d/hosts.real
 echo "# END gvpe vpn"  >>conf.d/hosts.vpn
