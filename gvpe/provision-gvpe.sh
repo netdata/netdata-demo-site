@@ -130,20 +130,22 @@ declare -A unique_vips=()
 
 c=0
 all=
+#     HOSTNAME             | PHYSICAL IP:PORT (pip)  | VPN IP (vip)        | O/S   | SSH IP (sip)
 for h in \
-    " box                  | 195.97.5.206:${PORT}    | ${BASE_NETWORK}.1   | linux " \
-    " costa                | dynamic:$((PORT - 1))   | ${BASE_NETWORK}.2   | none  " \
-    " london               | 139.59.166.55:${PORT}   | ${BASE_NETWORK}.10  | linux " \
-    " atlanta              | 185.93.0.89:${PORT}     | ${BASE_NETWORK}.20  | linux " \
-    " west-europe          | 13.93.125.124:${PORT}   | ${BASE_NETWORK}.30  | linux " \
-    " bangalore            | 139.59.0.212:${PORT}    | ${BASE_NETWORK}.40  | linux " \
-    " frankfurt            | 46.101.193.115:${PORT}  | ${BASE_NETWORK}.50  | linux " \
-    " sanfrancisco         | 104.236.149.236:${PORT} | ${BASE_NETWORK}.60  | linux " \
-    " toronto              | 159.203.30.96:${PORT}   | ${BASE_NETWORK}.70  | linux " \
-    " singapore            | 128.199.80.131:${PORT}  | ${BASE_NETWORK}.80  | linux " \
-    " newyork              | 162.243.236.205:${PORT} | ${BASE_NETWORK}.90  | linux " \
-    " aws-fra              | 35.156.164.190:${PORT}  | ${BASE_NETWORK}.100 | linux " \
-    " netdata-build-server | 40.68.190.151:${PORT}   | ${BASE_NETWORK}.110 | linux " \
+    " box                  | 195.97.5.206:${PORT}    | ${BASE_NETWORK}.1   | linux | vpn        " \
+    " boxe                 | dynamic:${PORT}         | ${BASE_NETWORK}.2   | linux | vpn        " \
+    " costa                | dynamic:$((PORT - 1))   | ${BASE_NETWORK}.3   | linux | localhost  " \
+    " london               | 139.59.166.55:${PORT}   | ${BASE_NETWORK}.10  | linux | " \
+    " atlanta              | 185.93.0.89:${PORT}     | ${BASE_NETWORK}.20  | linux | " \
+    " west-europe          | 13.93.125.124:${PORT}   | ${BASE_NETWORK}.30  | linux | " \
+    " bangalore            | 139.59.0.212:${PORT}    | ${BASE_NETWORK}.40  | linux | " \
+    " frankfurt            | 46.101.193.115:${PORT}  | ${BASE_NETWORK}.50  | linux | " \
+    " sanfrancisco         | 104.236.149.236:${PORT} | ${BASE_NETWORK}.60  | linux | " \
+    " toronto              | 159.203.30.96:${PORT}   | ${BASE_NETWORK}.70  | linux | " \
+    " singapore            | 128.199.80.131:${PORT}  | ${BASE_NETWORK}.80  | linux | " \
+    " newyork              | 162.243.236.205:${PORT} | ${BASE_NETWORK}.90  | linux | " \
+    " aws-fra              | 35.156.164.190:${PORT}  | ${BASE_NETWORK}.100 | linux | " \
+    " netdata-build-server | 40.68.190.151:${PORT}   | ${BASE_NETWORK}.110 | linux | " \
     ${NULL}
 do
     c=$((c + 1))
@@ -153,13 +155,19 @@ do
     p=$(echo "${h}"    | cut -d '|' -f 2)
     vip=$(echo "${h}"  | cut -d '|' -f 3)
     os=$(echo "${h}"   | cut -d '|' -f 4)
+    sip=$(echo "${h}"  | cut -d '|' -f 5)
     pip=$(echo "${p}"  | cut -d ':' -f 1)
     port=$(echo "${p}" | cut -d ':' -f 2)
+
+    [ "${sip}" = "vpn" ] && sip="${vip}"
+    [ -z "${sip}" ] && sip="${pip}"
+
     ifupdata="${BASE_NETWORK}.0/24|${vip}"
 
+    router_priority="1"
     hostname_comment=
     connect="always"
-    [ "${pip}" = "dynamic" ] && connect="never" && hostname_comment="# "
+    [ "${pip}" = "dynamic" ] && connect="ondemand" && hostname_comment="# " && router_priority="0"
 
     [ ! -z "${unique_names[${name}]}" ] && echo >&2 "Name '${name}' for IP ${pip} already exists with IP ${unique_names[${name}]}." && exit 1
     [ "${pip}" != "dynamic" -a ! -z "${unique_pips[${pip}]}" ] && echo >&2 "Public IP '${pip}' for ${name} already exists for ${unique_pips[${pip}]}." && exit 1
@@ -176,16 +184,18 @@ do
     printf "%-15s %s\n" "${vip}" "${name}" >>conf.d/hosts.vpn
 
     cat >conf.d/status/${c} <<EOF
-nodeid=${c}
-name=${name}
-status=down
-ip=${vip}
-si=
-rip=${pip}
-ripport=${port}
-mac=
+nodeid="${c}"
+name="${name}"
+status="down"
+ip="${vip}"
+si=""
+pip="${pip}"
+pipport="${port}"
+rip="${pip}"
+ripport="${port}"
+mac=""
 ifupdata="${ifupdata}"
-timestamp=$(date +%s)
+timestamp="$(date +%s)"
 EOF
 
     cat >>conf.d/gvpe.conf <<EOF
@@ -198,10 +208,10 @@ on ${name} hostname = 0.0.0.0
 udp-port = ${port}
 tcp-port = ${port}
 connect = ${connect} # ondemand | never | always | disabled
+router-priority = ${router_priority}
 on ${name} if-up-data = ${ifupdata}
 # allow-direct = *
 # deny-direct = *
-# router-priority = 2
 # on ${name} low-power = yes # on laptops
 EOF
 
@@ -253,25 +263,36 @@ do
     p=$(echo "${h}"    | cut -d '|' -f 2)
     vip=$(echo "${h}"  | cut -d '|' -f 3)
     os=$(echo "${h}"   | cut -d '|' -f 4)
+    sip=$(echo "${h}"  | cut -d '|' -f 5)
     pip=$(echo "${p}"  | cut -d ':' -f 1)
     port=$(echo "${p}" | cut -d ':' -f 2)
 
+    [ "${sip}" = "vpn" ] && sip="${vip}"
+    [ -z "${sip}" ] && sip="${pip}"
+
     # do not provision hosts with O/S set to 'none'
     [ "${os}" = "none" ] && continue
+    [ "${sip}" = "none" ] && continue
 
     echo >&2
-    echo >&2 "Provisioning: ${name}"
-
-    if [ "${os}" = "linux" ]
-        then
-        run rsync -HaSPv sbin/ root@${pip}:/usr/local/sbin/
-    fi
+    echo >&2 "Provisioning: ${name} (${sip})"
 
     run cp keys/${name}.privkey conf.d/hostkey
-    run rsync -HaSPv --delete conf.d/ root@${pip}:/etc/gvpe/
+
+    if [ "${sip}" = "localhost" ]
+        then
+        run sudo rsync -HaSPv sbin/ /usr/local/sbin/
+        run sudo rsync -HaSPv conf.d/ /etc/gvpe/
+        run sudo touch /etc/gvpe/local.conf
+        run sudo cp systemd/${name}.service /etc/systemd/system/gvpe.service
+    else
+        [ "${os}" = "linux" ] && run rsync -HaSPv sbin/ root@${sip}:/usr/local/sbin/
+        run rsync -HaSPv conf.d/ root@${sip}:/etc/gvpe/
+        run ssh "root@${sip}" touch /etc/gvpe/local.conf
+        run scp systemd/${name}.service root@${sip}:/etc/systemd/system/gvpe.service || echo "NO SYSTEMD ON ${name}" >&2
+    fi
+
     run rm conf.d/hostkey
-    run ssh "root@${pip}" touch /etc/gvpe/local.conf
-    run scp systemd/${name}.service root@${pip}:/etc/systemd/system/gvpe.service || systemd=0
 done
 
 # copy the files
@@ -281,27 +302,45 @@ do
     p=$(echo "${h}"    | cut -d '|' -f 2)
     vip=$(echo "${h}"  | cut -d '|' -f 3)
     os=$(echo "${h}"   | cut -d '|' -f 4)
+    sip=$(echo "${h}"  | cut -d '|' -f 5)
     pip=$(echo "${p}"  | cut -d ':' -f 1)
     port=$(echo "${p}" | cut -d ':' -f 2)
+
+    [ "${sip}" = "vpn" ] && sip="${vip}"
+    [ -z "${sip}" ] && sip="${pip}"
 
     # do not provision hosts with O/S set to 'none'
     [ "${os}" = "none" ] && continue
 
     echo >&2
-    echo >&2 "Restarting GVPE on: ${name}"
+    echo >&2 "Restarting GVPE on: ${name} (${sip})"
     
+    # try systemd
+
     failed=0
-    run ssh "root@${pip}" "systemctl daemon-reload && systemctl restart gvpe" || failed=1
-    
+    if [ "${sip}" = "localhost" ]
+        then
+        run sudo systemctl daemon-reload || failed=1
+        [ ${failed} -eq 0 ] && run sudo systemctl restart gvpe
+    else
+       run ssh "root@${sip}" "systemctl daemon-reload && systemctl restart gvpe" || failed=1
+    fi
+
+    # try killing gvpe
+
     if [ $failed -eq 1 ]
     then
         failed=0
-        run ssh "root@${pip}" killall gvpe || failed=1
+        if [ "${sip}" = "localhost" ]
+            then
+            killall gvpe || failed=1
+        else
+            run ssh "root@${sip}" killall gvpe || failed=1
+        fi
     fi
 
     if [ $failed -eq 1 ]
     then
-        echo >&2 "ERROR: Failed to restart gvpe on ${name} at ${pip}"
+        echo >&2 "ERROR: Failed to restart gvpe on ${name} at ${sip}"
     fi
 done
-

@@ -55,7 +55,7 @@ for x in *
 do
 	! [[ "${x}" =~ ^[0-9]+$ ]] && continue
 	[ "${x}" = "${MYNODEID}" ] && continue
-	[ $((x + 0)) -gt ${NODES} ] && rm "${x}" && continue
+	[ $((x + 0)) -gt ${NODES} -o $((x + 0)) -lt 1 ] && rm "${x}" && continue
 
 	source ${x}
 	#eval "mac=\${MAC_${nodeid}-${mac}}; ifupdata=\${IFUPDATA_${nodeid}-${ifupdata}}"
@@ -65,24 +65,32 @@ nodeid="${nodeid}"
 name="${name}"
 status="down"
 ip="${ip}"
-si=""
+si="${si}"
+pip="${pip}"
+pipport="${pipport}"
 rip="${rip}"
-ripport=""
+ripport="${ripport}"
 mac="${mac}"
 ifupdata="${ifupdata}"
 timestamp="$(date +%s)"
 EOF
+
+	[ -f "${name}" ] && rm "${name}"
+	ln -s "${x}" "${name}"
 done
 
 # set our node to up
+source ${CONFBASE}/status/${NODEID}
 cat >${CONFBASE}/status/${NODEID} <<EOF
-nodeid=${NODEID}
-name=${NODENAME}
+nodeid="${NODEID}"
+name="${NODENAME}"
 status="up"
-ip=${IP}
-si=""
-rip="ME"
-ripport=""
+ip="${IP}"
+si="${si}"
+pip="${pip}"
+pipport="${pipport}"
+rip="${rip}"
+ripport="${ripport}"
 mac="${MAC}"
 ifupdata="${IFUPDATA}"
 timestamp="$(date +%s)"
@@ -107,9 +115,9 @@ EOF
 # -----------------------------------------------------------------------------
 # execute any local action
 
-if [ -x ${CONFBASE}/${ME}.local ]
+if [ -x ${ME}.local ]
 	then
-	${CONFBASE}/${ME}.local "${@}"
+	run ${ME}.local "${@}"
 	exit $?
 fi
 

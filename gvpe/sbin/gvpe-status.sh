@@ -17,8 +17,14 @@ EVENTS=0
 NODES_ALL=0
 NODES_UP=0
 NODES_DOWN=0
-LAST="NEVER"
+timestamp="NEVER"
 . ./status
+
+if [ "${timestamp}" = "NEVER" ]
+	then
+	echo >&2 "GVPE is not connected"
+	exit 1
+fi
 
 cat <<EOF
 
@@ -44,7 +50,10 @@ do
 	remote="${rip}"
 	if [ "${status}" = "up" ]
 		then
-		[ "${si}" != "" ] && remote="${si}"
+		remote="${si}"
+		[ ! -z "${pip}" -a "${pip}" != "dynamic" -a "${rip}" != "${pip}" ] && status="routed"
+	else
+		remote="${pip}"
 	fi
 
 	printf "%3u %-25s %-15s %-25s %-6s %-20s\n" \
