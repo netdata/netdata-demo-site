@@ -9,3 +9,4 @@ gvpe/conf.d/pubkey
 gvpe/conf.d/status
 gvpe/keys/
 gvpe/systemd/
+gvpe/*.tar.gz

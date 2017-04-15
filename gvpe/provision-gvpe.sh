@@ -132,7 +132,7 @@ c=0
 all=
 #     HOSTNAME             | PHYSICAL IP:PORT (pip)  | VPN IP (vip)        | O/S   | SSH IP (sip)
 for h in \
-    " box                  | 195.97.5.206:${PORT}    | ${BASE_NETWORK}.1   | linux | vpn        " \
+    " box                  | 195.97.5.206:${PORT}    | ${BASE_NETWORK}.1   | linux | " \
     " boxe                 | dynamic:${PORT}         | ${BASE_NETWORK}.2   | linux | vpn        " \
     " costa                | dynamic:$((PORT - 1))   | ${BASE_NETWORK}.3   | linux | localhost  " \
     " london               | 139.59.166.55:${PORT}   | ${BASE_NETWORK}.10  | linux | " \
@@ -270,28 +270,28 @@ do
     [ "${sip}" = "vpn" ] && sip="${vip}"
     [ -z "${sip}" ] && sip="${pip}"
 
-    # do not provision hosts with O/S set to 'none'
-    [ "${os}" = "none" ] && continue
-    [ "${sip}" = "none" ] && continue
-
-    echo >&2
-    echo >&2 "Provisioning: ${name} (${sip})"
-
     run cp keys/${name}.privkey conf.d/hostkey
+    run cp systemd/${name}.service conf.d/gvpe.service
+    [ -f "gvpe-conf-d-on-${name}.tar.gz" ] && rm "gvpe-conf-d-on-${name}.tar.gz"
+    tar -zcpf "gvpe-conf-d-on-${name}.tar.gz" conf.d/
 
-    if [ "${sip}" = "localhost" ]
+    # do not provision hosts with O/S set to 'none'
+    if [ "${os}" != "none" -a "${sip}" != "none" ]
         then
-        run sudo rsync -HaSPv sbin/ /usr/local/sbin/
-        run sudo rsync -HaSPv conf.d/ /etc/gvpe/
-        run sudo touch /etc/gvpe/local.conf
-        run sudo cp systemd/${name}.service /etc/systemd/system/gvpe.service
-    else
-        [ "${os}" = "linux" ] && run rsync -HaSPv sbin/ root@${sip}:/usr/local/sbin/
-        run rsync -HaSPv conf.d/ root@${sip}:/etc/gvpe/
-        run ssh "root@${sip}" touch /etc/gvpe/local.conf
-        run scp systemd/${name}.service root@${sip}:/etc/systemd/system/gvpe.service || echo "NO SYSTEMD ON ${name}" >&2
+        echo >&2
+        echo >&2 "Provisioning: ${name} (${sip})"
+
+        if [ "${sip}" = "localhost" ]
+            then
+            run sudo rsync -HaSPv sbin/ /usr/local/sbin/
+            run sudo rsync -HaSPv conf.d/ /etc/gvpe/
+        else
+            [ "${os}" = "linux" ] && run rsync -HaSPv sbin/ -e "ssh" --rsync-path="\$(which sudo) rsync" ${sip}:/usr/local/sbin/
+            run rsync -HaSPv conf.d/ -e "ssh" --rsync-path="\$(which sudo) rsync" ${sip}:/etc/gvpe/
+        fi
     fi
 
+    run rm conf.d/gvpe.service
     run rm conf.d/hostkey
 done
 
@@ -309,38 +309,21 @@ do
     [ "${sip}" = "vpn" ] && sip="${vip}"
     [ -z "${sip}" ] && sip="${pip}"
 
-    # do not provision hosts with O/S set to 'none'
-    [ "${os}" = "none" ] && continue
-
-    echo >&2
-    echo >&2 "Restarting GVPE on: ${name} (${sip})"
-    
-    # try systemd
-
-    failed=0
-    if [ "${sip}" = "localhost" ]
+    if [ "${os}" != "none" -a "${sip}" != "none" ]
         then
-        run sudo systemctl daemon-reload || failed=1
-        [ ${failed} -eq 0 ] && run sudo systemctl restart gvpe
-    else
-       run ssh "root@${sip}" "systemctl daemon-reload && systemctl restart gvpe" || failed=1
-    fi
+        echo >&2
+        echo >&2 "Setting up GVPE on: ${name} (${sip})"
+        
+        # try systemd
 
-    # try killing gvpe
-
-    if [ $failed -eq 1 ]
-    then
         failed=0
         if [ "${sip}" = "localhost" ]
             then
-            killall gvpe || failed=1
+            # it will sudo by itself if needed
+            run /etc/gvpe/setup.sh /etc/gvpe || failed=1
         else
-            run ssh "root@${sip}" killall gvpe || failed=1
+            # it will sudo by itself if needed
+            run ssh "${sip}" "/etc/gvpe/setup.sh /etc/gvpe" || failed=1
         fi
-    fi
-
-    if [ $failed -eq 1 ]
-    then
-        echo >&2 "ERROR: Failed to restart gvpe on ${name} at ${sip}"
     fi
 done
