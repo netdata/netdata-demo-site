@@ -4,6 +4,16 @@ ME="${0}"
 ACTION="${1}"
 shift
 
+os=$(uname -s)
+
+if [ "${os}" = "Linux" ]
+	then
+	:
+elif [ "${os}" = "FreeBSD" ]
+	then
+	kldload if_tap
+fi
+
 run_command() {
 	$(dirname "${ME}")/gvpe -c /etc/gvpe -D "${@}"
 }

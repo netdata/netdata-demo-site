@@ -132,20 +132,21 @@ c=0
 all=
 #     HOSTNAME             | PHYSICAL IP:PORT (pip)  | VPN IP (vip)        | O/S   | SSH IP (sip)
 for h in \
-    " box                  | 195.97.5.206:${PORT}    | ${BASE_NETWORK}.1   | linux | " \
-    " boxe                 | dynamic:${PORT}         | ${BASE_NETWORK}.2   | linux | vpn        " \
-    " costa                | dynamic:$((PORT - 1))   | ${BASE_NETWORK}.3   | linux | localhost  " \
-    " london               | 139.59.166.55:${PORT}   | ${BASE_NETWORK}.10  | linux | " \
-    " atlanta              | 185.93.0.89:${PORT}     | ${BASE_NETWORK}.20  | linux | " \
-    " west-europe          | 13.93.125.124:${PORT}   | ${BASE_NETWORK}.30  | linux | " \
-    " bangalore            | 139.59.0.212:${PORT}    | ${BASE_NETWORK}.40  | linux | " \
-    " frankfurt            | 46.101.193.115:${PORT}  | ${BASE_NETWORK}.50  | linux | " \
-    " sanfrancisco         | 104.236.149.236:${PORT} | ${BASE_NETWORK}.60  | linux | " \
-    " toronto              | 159.203.30.96:${PORT}   | ${BASE_NETWORK}.70  | linux | " \
-    " singapore            | 128.199.80.131:${PORT}  | ${BASE_NETWORK}.80  | linux | " \
-    " newyork              | 162.243.236.205:${PORT} | ${BASE_NETWORK}.90  | linux | " \
-    " aws-fra              | 35.156.164.190:${PORT}  | ${BASE_NETWORK}.100 | linux | " \
-    " netdata-build-server | 40.68.190.151:${PORT}   | ${BASE_NETWORK}.110 | linux | " \
+    " box                  | 195.97.5.206:${PORT}    | ${BASE_NETWORK}.1   | linux   | " \
+    " boxe                 | dynamic:${PORT}         | ${BASE_NETWORK}.2   | linux   | vpn        " \
+    " costa                | dynamic:$((PORT - 1))   | ${BASE_NETWORK}.3   | linux   | localhost  " \
+    " london               | 139.59.166.55:${PORT}   | ${BASE_NETWORK}.10  | linux   | " \
+    " atlanta              | 185.93.0.89:${PORT}     | ${BASE_NETWORK}.20  | linux   | " \
+    " west-europe          | 13.93.125.124:${PORT}   | ${BASE_NETWORK}.30  | linux   | " \
+    " bangalore            | 139.59.0.212:${PORT}    | ${BASE_NETWORK}.40  | linux   | " \
+    " frankfurt            | 46.101.193.115:${PORT}  | ${BASE_NETWORK}.50  | linux   | " \
+    " sanfrancisco         | 104.236.149.236:${PORT} | ${BASE_NETWORK}.60  | linux   | " \
+    " toronto              | 159.203.30.96:${PORT}   | ${BASE_NETWORK}.70  | linux   | " \
+    " singapore            | 128.199.80.131:${PORT}  | ${BASE_NETWORK}.80  | linux   | " \
+    " newyork              | 162.243.236.205:${PORT} | ${BASE_NETWORK}.90  | linux   | " \
+    " aws-fra              | 35.156.164.190:${PORT}  | ${BASE_NETWORK}.100 | linux   | " \
+    " netdata-build-server | 40.68.190.151:${PORT}   | ${BASE_NETWORK}.110 | linux   | " \
+    " freebsd              | 178.62.98.199:${PORT}   | ${BASE_NETWORK}.120 | freebsd | " \
     ${NULL}
 do
     c=$((c + 1))
@@ -161,6 +162,9 @@ do
 
     [ "${sip}" = "vpn" ] && sip="${vip}"
     [ -z "${sip}" ] && sip="${pip}"
+
+    ifname="vpn0"
+    [ "${os}" = "freebsd" ] && ifname="tap0"
 
     ifupdata="${BASE_NETWORK}.0/24|${vip}"
 
@@ -205,6 +209,7 @@ node = ${name}
 
 ${hostname_comment}hostname = ${pip}
 on ${name} hostname = 0.0.0.0
+on ${name} ifname = ${ifname}
 udp-port = ${port}
 tcp-port = ${port}
 connect = ${connect} # ondemand | never | always | disabled
@@ -272,8 +277,8 @@ do
 
     run cp keys/${name}.privkey conf.d/hostkey
     run cp systemd/${name}.service conf.d/gvpe.service
-    [ -f "gvpe-conf-d-on-${name}.tar.gz" ] && rm "gvpe-conf-d-on-${name}.tar.gz"
-    tar -zcpf "gvpe-conf-d-on-${name}.tar.gz" conf.d/
+    [ -f "gvpe-conf-d-on-${name}.tar.gz" ] && run rm "gvpe-conf-d-on-${name}.tar.gz"
+    run tar -zcpf "gvpe-conf-d-on-${name}.tar.gz" conf.d/
 
     # do not provision hosts with O/S set to 'none'
     if [ "${os}" != "none" -a "${sip}" != "none" ]
@@ -284,10 +289,12 @@ do
         if [ "${sip}" = "localhost" ]
             then
             run sudo rsync -HaSPv sbin/ /usr/local/sbin/
+            run sudo rsync -HaSPv sbin.${os}/ /usr/local/sbin/
             run sudo rsync -HaSPv conf.d/ /etc/gvpe/
         else
-            [ "${os}" = "linux" ] && run rsync -HaSPv sbin/ -e "ssh" --rsync-path="\$(which sudo) rsync" ${sip}:/usr/local/sbin/
-            run rsync -HaSPv conf.d/ -e "ssh" --rsync-path="\$(which sudo) rsync" ${sip}:/etc/gvpe/
+            run rsync -HaSPv sbin/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${sip}:/usr/local/sbin/
+            run rsync -HaSPv sbin.${os}/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${sip}:/usr/local/sbin/
+            run rsync -HaSPv conf.d/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${sip}:/etc/gvpe/
         fi
     fi
 

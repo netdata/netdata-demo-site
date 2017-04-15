@@ -42,10 +42,17 @@ echo >&2 "NET      : ${NET}"
 # -----------------------------------------------------------------------------
 # bring the interface up
 
-run ip link set ${IFNAME} address ${MAC} mtu ${MTU} up
-run ip addr add ${IP} dev ${IFNAME}
-run ip route replace ${NET} dev ${IFNAME} || \
-	run ip route add ${NET} dev ${IFNAME}
+os="$(uname -s)"
+if [ "${os}" = "Linux" ]
+	then
+	run ip link set ${IFNAME} address ${MAC} mtu ${MTU} up
+	run ip addr add ${IP} dev ${IFNAME}
+	run ip route replace ${NET} dev ${IFNAME} || \
+		run ip route add ${NET} dev ${IFNAME}
+elif [ "${os}" = "FreeBSD" ]
+	then
+	run ifconfig ${IFNAME} inet ${IP}/${NET/*\/} up description "GVPE tunnel"
+fi
 
 # -----------------------------------------------------------------------------
 # we just connected, mark all nodes down

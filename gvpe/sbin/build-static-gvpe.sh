@@ -66,6 +66,7 @@ export ACLOCAL="aclocal"
 export LDFLAGS="-static"
 
 ./autogen.sh \
+    --prefix=/ \
     --enable-iftype=native/linux \
     --enable-threads \
     --enable-bridging \

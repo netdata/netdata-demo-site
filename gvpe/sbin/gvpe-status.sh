@@ -31,7 +31,7 @@ cat <<EOF
 GVPE Status on ${MYNODENAME} (Node No ${MYNODEID})
 
 Total Events: ${EVENTS}
-Last Event: $(date --date=@${timestamp} "+%Y-%m-%d %H:%M:%S")
+Last Event: $(date -r ./status "+%Y-%m-%d %H:%M:%S")
 
 Up ${NODES_UP}, Down ${NODES_DOWN}, Total ${NODES_ALL} nodes
 
@@ -58,5 +58,5 @@ do
 
 	printf "%3u %-25s %-15s %-25s %-6s %-20s\n" \
 		"$((x))" "${name}" "${ip}" "${remote}" "${status}" \
-		"$(date --date=@${timestamp} "+%Y-%m-%d %H:%M:%S")"
+		"$(date -r "./${x}" "+%Y-%m-%d %H:%M:%S")"
 done
