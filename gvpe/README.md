@@ -34,19 +34,55 @@ Of course, GVPE lacks a management system, to easily provision the entire networ
 
 ## How-To
 
-1. Edit [nodes.conf](nodes.conf) and describe your nodes.
+1. Edit [nodes.conf](nodes.conf) and describe your nodes. You will need to describe the following:
 
-2. Run [provision-gvpe.sh](provision-gvpe.sh) to push the configuration to all nodes. If it fails to ssh to your servers, you have to fix it. I normally allow password-less ssh with my keys, so the script runs without any interaction.
+- a `name` for each node.
+- the `public IP` and `port` of each node. You can give the word `dynamic` as the IP, if it is not static, in which case the other nodes will not initiate connections towards this node. I use `dynamic` for my home, office and laptop.
+- the `virtual IP` of the node, i.e. the IP the node should get once connected to the VPN.
+- the `SSH IP` of the node, i.e. the IP the scripts will use for provisioning files and configuration to the node. You can use the keyword `vpn` to use the VPN IP (you can do this after the network has been setup once), or `localhost` to provision the files on the host running the scripts (I use this for my laptop), or `none` to disable provisioning for a node.
+- the operating system of the node. Currently `linux` and `freebsd` are supported.
 
-3. When the script finsihes successfully, all systems that are using `systemd` will be running `gvpe`. For non-systemd systems you will have to ssh to the nodes manually and add `/usr/local/sbin/gvpe-supervisor.sh start` to your `/etc/rc.local` or `/etc/local.d`. Run it also by hand. You will not need to do this again. Re-executing `provision-gvpe.sh` will restart `gvpe` even on these nodes.
+   These are all the configuration you need to do. For most setups, the scripts will handle the rest.
 
-4. For most systems, no firewall change should be needed. Yes, gvpe will get connected without any change to your firewall. The reason is that all nodes are attempting to connect to all other nodes, using raw IP, ICMP, UDP and TCP. For all kinds of connections except TCP, the firewalls will encounter outbound connections, which will be replied back. This allows the connections to be established.
+2. Run [provision-gvpe.sh](provision-gvpe.sh) to generate the configuration, the public and private keys of the nodes and push everything to all nodes. The script uses SSH and RSYNC to update the nodes. If it fails to ssh to one of your servers it will stop - you have to fix it. I normally allow password-less ssh with my personal keys, so the script runs without any interaction.
 
-5. You can see the status of all nodes by running `/usr/local/sbin/gvpe-status.sh` on each node.
+3. When the script finsihes successfully, all systems that are using `systemd` will be running `gvpe` (binaries and script will be saved at `/usr/local/sbin` and configuration at `/etc/gvpe`). For non-systemd systems you will have to ssh to the nodes manually and add `/usr/local/sbin/gvpe-supervisor.sh start` to your `/etc/rc.local` or `/etc/local.d`. Run it also by hand to start gvpe without rebooting. You will not need to do this again. Re-executing `provision-gvpe.sh` will restart `gvpe` even on these nodes.
 
-6. You can set the order gvpe routers will be evaluated, by running `/usr/local/sbin/gvpe-routing-order.sh` on each node.
+4. For most systems, no firewall change should be needed. Yes, gvpe will get connected without any change to your firewall. The reason is that all nodes are attempting to connect to all other nodes, using raw IP, ICMP, UDP and TCP. For all kinds of connections except TCP, the firewalls will encounter outbound connections, which will be replied back. This allows the connections to be established. Of course you will need to configure the firewall for all nodes if you use any `dynamic` nodes.
+
+5. You can see the status of all nodes by running [`/usr/local/sbin/gvpe-status.sh`](sbin/gvpe-status.sh) on each node. You will get something like this:
+
+```sh
+# /usr/local/sbin/gvpe-status.sh 
+
+GVPE Status on boxe (Node No 2)
+
+Total Events: 259
+Last Event: 2017-04-17 01:55:24
+
+Up 15, Down 0, Total 15 nodes
+
+ ID Name                      VPN IP          REAL IP                   STATUS SINCE               
+  1 box                       172.16.254.1    udp/195.97.5.206:49999    up     2017-04-17 01:54:48 
+  3 costa                     172.16.254.3    udp/10.11.13.143:49998    up     2017-04-17 01:44:18 
+  4 london                    172.16.254.10   udp/139.59.166.55:49999   up     2017-04-17 01:54:44 
+  5 atlanta                   172.16.254.20   udp/185.93.0.89:49999     up     2017-04-17 01:54:46 
+  6 west-europe               172.16.254.30   udp/13.93.125.124:49999   up     2017-04-17 01:54:56 
+  7 bangalore                 172.16.254.40   udp/139.59.0.212:49999    up     2017-04-17 01:54:51 
+  8 frankfurt                 172.16.254.50   udp/46.101.193.115:49999  up     2017-04-17 01:54:50 
+  9 sanfrancisco              172.16.254.60   udp/104.236.149.236:49999 up     2017-04-17 01:54:59 
+ 10 toronto                   172.16.254.70   udp/159.203.30.96:49999   up     2017-04-17 01:54:59 
+ 11 singapore                 172.16.254.80   udp/128.199.80.131:49999  up     2017-04-17 01:55:09 
+ 12 newyork                   172.16.254.90   udp/162.243.236.205:49999 up     2017-04-17 01:55:00 
+ 13 aws-fra                   172.16.254.100  udp/35.156.164.190:49999  up     2017-04-17 01:55:12 
+ 14 netdata-build-server      172.16.254.110  udp/40.68.190.151:49999   up     2017-04-17 01:47:38 
+ 15 freebsd                   172.16.254.120  udp/178.62.98.199:49999   up     2017-04-17 01:55:24 
+```
+
+6. You can set the order gvpe routers will be evaluated, by running [`/usr/local/sbin/gvpe-routing-order.sh`](sbin/gvpe-routing-order.sh) on each node.
 
 7. If a node fails to get connected, you may need to disable a few protocols for it. On the failing node, edit `/etc/gvpe/local.conf` to override any of the default settings. Do not edit `/etc/gvpe/gvpe.conf`, as this will be overwritten when `provision-gvpe.sh` pushes new configuration.
 
-8. If you need to add static routes or take other actions when gvpe starts, nodes are connected, disconnected or updated, you will have to do it by hand, on each node, by editing all the `.local` files in `/etc/gvpe`. Keep in mind you can place any of these files in `conf.d` and `provision-gvpe.sh` will push it to all nodes (but node it will be executed on all nodes, without exception - normally static routing should be executed on all nodes, except one - the node that should route this traffic to its local network - you should handle this case by code in the script).
+8. If you need to add static routes or take other actions when gvpe starts, nodes are connected, disconnected or updated, you will have to do it by hand, on each node, by editing all the `.local` files in `/etc/gvpe`. Keep in mind you can place any of these files in `conf.d` and `provision-gvpe.sh` will push it to all nodes (but note it will be executed on all nodes, without exception - normally static routing should be executed on all nodes, except one - the node that should route this traffic to its local network - you should handle this case by code in the script).
 
+9. The scripts try to maintain persistent IDs for nodes. GVPE uses the order of the nodes in `gvpe.conf` to determine the ID of each node. The ID is used in the packets to identify the keys that should be used. If an update re-arranges the nodes, gvpe on all nodes will have to be restarted for the communication to be restored. So, the scripts try to maintain the same ID for each node, indepently of the order the nodes appear in `nodes.conf`. If you need to remove a node through, I suggest to keep it with its `SSH IP` set to `none`.
