@@ -1,8 +1,8 @@
 # GVPE
 
-GVPE is a mesh VPN: a number of hosts running GVPE will get a virtual Ethernet interface (TAP) connecting them all together via encrypted communication. It is mesh, meaning that all hosts talk directly to each other, although routed communication is also supported.
+[GVPE](http://software.schmorp.de/pkg/gvpe.html) is a mesh VPN: a number of hosts running GVPE will get a virtual Ethernet interface (TAP) connecting them all together via encrypted communication. It is mesh, meaning that all hosts talk directly to each other, although routed communication is also supported.
 
-GVPE is very close to [TINC](https://www.tinc-vpn.org/), with the following differences (I found):
+[GVPE](http://software.schmorp.de/pkg/gvpe.html) is very close to [TINC](https://www.tinc-vpn.org/), with the following differences (I found):
 
 1. GVPE security is decided at compile-time, while TINC at configure-time. This repo includes statically linked GVPE binaries for Linux and FreeBSD, compiled with the strongest security settings GVPE supports.
 
@@ -17,7 +17,7 @@ GVPE is very close to [TINC](https://www.tinc-vpn.org/), with the following diff
 - `rawip`, that uses raw IP frames marked with any protocol number: GRE, IPSEC AH, etc. This is the best choice, due to its low overhead.
 - `icmp`, that uses any ICMP message. The second best choice in terms of overheads. It can also enable communication is certain cases that all other protocol fail.
 - `udp`, the most common alternative to `rawip`.
-- `tcp`, GVPE supports plain TCP but all tunneled through HTTPS proxies tcp connections.
+- `tcp`, GVPE supports plain TCP but also tunneled through HTTPS proxies tcp connections.
 - `dns` (this is not compiled in the binary files in this repo).
 
 6. GVPE packages do not seem to be available in many operating systems, while TINC seems to be available everywhere.
@@ -32,7 +32,14 @@ I decided to use GVPE for interconnecting netdata VMs, because GVPE seems a lot 
 Of course, GVPE lacks a management system, to easily provision the entire network with changes. The files in this directory attempt to provide that.
 
 
-## How-To
+## Links
+
+- [GVPE home page](http://software.schmorp.de/pkg/gvpe.html)
+- [GVPE configuration reference](http://pod.tst.eu/http://cvs.schmorp.de/gvpe/doc/gvpe.conf.5.pod)
+- [GVPE supported transport protocol](http://pod.tst.eu/http://cvs.schmorp.de/gvpe/doc/gvpe.protocol.7.pod)
+- [GVPE O/S support](http://pod.tst.eu/http://cvs.schmorp.de/gvpe/doc/gvpe.osdep.5.pod)
+
+## How to use the scripts on this repo
 
 1. Edit [nodes.conf](nodes.conf) and describe your nodes. You will need to describe the following:
 
@@ -42,7 +49,49 @@ Of course, GVPE lacks a management system, to easily provision the entire networ
 - the `SSH IP` of the node, i.e. the IP the scripts will use for provisioning files and configuration to the node. You can use the keyword `vpn` to use the VPN IP (you can do this after the network has been setup once), or `localhost` to provision the files on the host running the scripts (I use this for my laptop), or `none` to disable provisioning for a node.
 - the operating system of the node. Currently `linux` and `freebsd` are supported.
 
+   This is mine:
+
+```sh
+# -----------------------------------------------------------------------------
+# configuration
+
+BASE_IP="172.16.254"
+
+# The CIDR of the entire VPN network
+VPN_NETWORK="${BASE_IP}.0/24"
+
+# The default port - each node may use a different
+PORT="49999"
+
+#    HOSTNAME             PUBLIC IP : PORT        VIRTUAL IP          O/S     SSH IP
+node box                  dynamic:${PORT}         ${BASE_IP}.1        linux   '195.97.5.206'
+node boxe                 dynamic:${PORT}         ${BASE_IP}.2        linux   '10.11.13.1'
+node costa                dynamic:$((PORT - 1))   ${BASE_IP}.3        linux   'localhost'
+node london               139.59.166.55:${PORT}   ${BASE_IP}.10       linux   ''
+node atlanta              185.93.0.89:${PORT}     ${BASE_IP}.20       linux   ''
+node west-europe          13.93.125.124:${PORT}   ${BASE_IP}.30       linux   ''
+node bangalore            139.59.0.212:${PORT}    ${BASE_IP}.40       linux   ''
+node frankfurt            46.101.193.115:${PORT}  ${BASE_IP}.50       linux   ''
+node sanfrancisco         104.236.149.236:${PORT} ${BASE_IP}.60       linux   ''
+node toronto              159.203.30.96:${PORT}   ${BASE_IP}.70       linux   ''
+node singapore            128.199.80.131:${PORT}  ${BASE_IP}.80       linux   ''
+node newyork              162.243.236.205:${PORT} ${BASE_IP}.90       linux   ''
+node aws-fra              35.156.164.190:${PORT}  ${BASE_IP}.100      linux   ''
+node netdata-build-server 40.68.190.151:${PORT}   ${BASE_IP}.110      linux   ''
+node freebsd              178.62.98.199:${PORT}   ${BASE_IP}.120      freebsd ''
+
+# generate all configuration files locally
+configure
+
+# push all configuration files to all nodes
+provision
+
+# restart gvpe on all nodes
+activate
+```
+
    These are all the configuration you need to do. For most setups, the scripts will handle the rest.
+
 
 2. Run [provision-gvpe.sh](provision-gvpe.sh) to generate the configuration, the public and private keys of the nodes and push everything to all nodes. The script uses SSH and RSYNC to update the nodes. If it fails to ssh to one of your servers it will stop - you have to fix it. I normally allow password-less ssh with my personal keys, so the script runs without any interaction.
 
@@ -81,7 +130,7 @@ Up 15, Down 0, Total 15 nodes
 
 6. You can set the order gvpe routers will be evaluated, by running [`/usr/local/sbin/gvpe-routing-order.sh`](sbin/gvpe-routing-order.sh) on each node.
 
-7. If a node fails to get connected, you may need to disable a few protocols for it. On the failing node, edit `/etc/gvpe/local.conf` to override any of the default settings. Do not edit `/etc/gvpe/gvpe.conf`, as this will be overwritten when `provision-gvpe.sh` pushes new configuration.
+7. If a node fails connect, you may need to disable a few protocols for it. On the failing node, edit `/etc/gvpe/local.conf` to override any of the default settings. Do not edit `/etc/gvpe/gvpe.conf`, as this will be overwritten when `provision-gvpe.sh` pushes new configuration. On amazon EC2 nodes, for example, I had to disable `rawip` and `icmp`.
 
 8. If you need to add static routes or take other actions when gvpe starts, nodes are connected, disconnected or updated, you will have to do it by hand, on each node, by editing all the `.local` files in `/etc/gvpe`. Keep in mind you can place any of these files in `conf.d` and `provision-gvpe.sh` will push it to all nodes (but note it will be executed on all nodes, without exception - normally static routing should be executed on all nodes, except one - the node that should route this traffic to its local network - you should handle this case by code in the script).
 
