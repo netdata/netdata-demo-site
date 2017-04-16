@@ -1,0 +1,13 @@
+[Unit]
+Description=gvpe
+After=network.target
+Before=remote-fs.target
+
+[Service]
+ExecStart=/usr/local/sbin/gvpe-supervisor.sh systemd-start
+KillMode=process
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

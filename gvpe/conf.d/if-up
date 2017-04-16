@@ -43,26 +43,31 @@ echo >&2 "NET      : ${NET}"
 # bring the interface up
 
 os="$(uname -s)"
-if [ "${os}" = "Linux" ]
-	then
-	run ip link set ${IFNAME} address ${MAC} mtu ${MTU} up
-	run ip addr add ${IP} dev ${IFNAME}
-	run ip route replace ${NET} dev ${IFNAME} || \
-		run ip route add ${NET} dev ${IFNAME}
-elif [ "${os}" = "FreeBSD" ]
-	then
-	run ifconfig ${IFNAME} inet ${IP}/${NET/*\/} up description "GVPE tunnel"
-fi
+case "${os}" in
+	Linux)
+		run ip link set ${IFNAME} address ${MAC} mtu ${MTU} up
+		run ip addr add ${IP} dev ${IFNAME}
+		run ip route replace ${NET} dev ${IFNAME} || \
+			run ip route add ${NET} dev ${IFNAME}
+		;;
+
+	FreeBSD)
+		run ifconfig ${IFNAME} inet ${IP}/${NET/*\/} up description "GVPE tunnel"
+		;;
+
+	*)
+		echo >&2 "Unknown operating system '${os}'. Configuration may be incomplete."
+		;;
+esac
 
 # -----------------------------------------------------------------------------
 # we just connected, mark all nodes down
 
 cd ${CONFBASE}/status
-for x in *
+while read x
 do
-	! [[ "${x}" =~ ^[0-9]+$ ]] && continue
-	[ "${x}" = "${MYNODEID}" ] && continue
-	[ $((x + 0)) -gt ${NODES} -o $((x + 0)) -lt 1 ] && rm "${x}" && continue
+	[ "${x}" = "${MYNODENAME}" ] && continue
+	[ ! -f "${x}" ] && echo >&2 "File '${x}' missing!" && continue
 
 	source ${x}
 	#eval "mac=\${MAC_${nodeid}-${mac}}; ifupdata=\${IFUPDATA_${nodeid}-${ifupdata}}"
@@ -81,14 +86,11 @@ mac="${mac}"
 ifupdata="${ifupdata}"
 timestamp="$(date +%s)"
 EOF
-
-	[ -f "${name}" ] && rm "${name}"
-	ln -s "${x}" "${name}"
-done
+done <nodes
 
 # set our node to up
-source ${CONFBASE}/status/${NODEID}
-cat >${CONFBASE}/status/${NODEID} <<EOF
+source ${CONFBASE}/status/${NODENAME}
+cat >${CONFBASE}/status/${NODENAME} <<EOF
 nodeid="${NODEID}"
 name="${NODENAME}"
 status="up"

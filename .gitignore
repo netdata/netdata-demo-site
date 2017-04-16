@@ -8,5 +8,6 @@ gvpe/conf.d/hosts.vpn
 gvpe/conf.d/pubkey
 gvpe/conf.d/status
 gvpe/keys/
+gvpe/ids/
 gvpe/systemd/
 gvpe/*.tar.gz

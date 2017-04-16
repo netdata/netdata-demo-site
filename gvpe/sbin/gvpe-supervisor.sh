@@ -15,22 +15,33 @@ elif [ "${os}" = "FreeBSD" ]
 fi
 
 run_command() {
-	$(dirname "${ME}")/gvpe -c /etc/gvpe -D "${@}"
+	local exec=""
+
+	[ "${1}" = "exec" ] && exec="exec"
+	${exec} $(dirname "${ME}")/gvpe -c /etc/gvpe -D "$(</etc/gvpe/hostname)"
+}
+
+run_forever() {
+	while [ 1 ]
+	do
+		run_command "${@}"
+		echo "$(date): EXITED WITH CODE $?"
+		sleep 10
+	done
 }
 
 case "${ACTION}" in
+	systemd-start)
+		run_command exec "${@}"
+		;;
+
 	start)
 		screen -dmS gvpe "${ME}" run-forever "${@}"
 		exit $?
 		;;
 
 	run-forever)
-		while [ 1 ]
-		do
-			run_command "${@}"
-			echo "$(date): EXITED WITH CODE $?"
-			sleep 10
-		done
+		run_forever "${@}"
 		;;
 
 	*)

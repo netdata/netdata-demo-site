@@ -7,7 +7,7 @@ NULL=
 BASE_NETWORK="172.16.254"
 PORT="49999"
 
-[ ! -d systemd ] && mkdir -p systemd
+[ ! -d ids ] && mkdir -p ids
 [ ! -d keys ] && mkdir -p keys
 [ ! -d conf.d ] && mkdir -p conf.d
 [ ! -d conf.d/pubkey ] && mkdir -p conf.d/pubkey
@@ -110,6 +110,7 @@ EOF
 
 cat >conf.d/gvpe.conf.end <<EOF
 
+# -----------------------------------------------------------------------------
 # load local configuration overrides
 
 EOF
@@ -128,93 +129,171 @@ declare -A unique_names=()
 declare -A unique_pips=()
 declare -A unique_vips=()
 
-c=0
-all=
-#     HOSTNAME             | PHYSICAL IP:PORT (pip)  | VPN IP (vip)        | O/S   | SSH IP (sip)
-for h in \
-    " box                  | 195.97.5.206:${PORT}    | ${BASE_NETWORK}.1   | linux   | " \
-    " boxe                 | dynamic:${PORT}         | ${BASE_NETWORK}.2   | linux   | vpn        " \
-    " costa                | dynamic:$((PORT - 1))   | ${BASE_NETWORK}.3   | linux   | localhost  " \
-    " london               | 139.59.166.55:${PORT}   | ${BASE_NETWORK}.10  | linux   | " \
-    " atlanta              | 185.93.0.89:${PORT}     | ${BASE_NETWORK}.20  | linux   | " \
-    " west-europe          | 13.93.125.124:${PORT}   | ${BASE_NETWORK}.30  | linux   | " \
-    " bangalore            | 139.59.0.212:${PORT}    | ${BASE_NETWORK}.40  | linux   | " \
-    " frankfurt            | 46.101.193.115:${PORT}  | ${BASE_NETWORK}.50  | linux   | " \
-    " sanfrancisco         | 104.236.149.236:${PORT} | ${BASE_NETWORK}.60  | linux   | " \
-    " toronto              | 159.203.30.96:${PORT}   | ${BASE_NETWORK}.70  | linux   | " \
-    " singapore            | 128.199.80.131:${PORT}  | ${BASE_NETWORK}.80  | linux   | " \
-    " newyork              | 162.243.236.205:${PORT} | ${BASE_NETWORK}.90  | linux   | " \
-    " aws-fra              | 35.156.164.190:${PORT}  | ${BASE_NETWORK}.100 | linux   | " \
-    " netdata-build-server | 40.68.190.151:${PORT}   | ${BASE_NETWORK}.110 | linux   | " \
-    " freebsd              | 178.62.98.199:${PORT}   | ${BASE_NETWORK}.120 | freebsd | " \
-    ${NULL}
-do
-    c=$((c + 1))
-    h="${h// /}" # remove all spaces
-    all="${all} ${h}"
-    name=$(echo "${h}" | cut -d '|' -f 1)
-    p=$(echo "${h}"    | cut -d '|' -f 2)
-    vip=$(echo "${h}"  | cut -d '|' -f 3)
-    os=$(echo "${h}"   | cut -d '|' -f 4)
-    sip=$(echo "${h}"  | cut -d '|' -f 5)
+max_id=0
+[ -f ids/.max ] && max_id=$(<ids/.max)
+declare -a gvpe_name_by_id=()
+declare -A gvpe_id=()
+declare -A gvpe_name=()
+declare -A gvpe_vip=()
+declare -A gvpe_os=()
+declare -A gvpe_sip=()
+declare -A gvpe_pip=()
+declare -A gvpe_port=()
+declare -A gvpe_ifname=()
+declare -A gvpe_ifupdata=()
+declare -A gvpe_connect=()
+declare -A gvpe_router_priority=()
+
+node() {
+    local name="${1// /}" p="${2// /}" vip="${3// /}" os="${4// /}" sip="${5// /}"
+    local pip port ifname ifupdata connect router_priority hostname_comment
+
     pip=$(echo "${p}"  | cut -d ':' -f 1)
     port=$(echo "${p}" | cut -d ':' -f 2)
+
+    case "${os}" in
+        linux)
+            ifname="vpn0"
+            ;;
+
+        freebsd)
+            ifname="tap0"
+            ;;
+
+        *)
+            echo >&2 "Unknown O/S '${os}'"
+            exit 1
+            ;;
+    esac
+
+    ifupdata="${BASE_NETWORK}.0/24|${vip}"
+
+    case "${pip}" in
+        dynamic)
+            [ -z "${sip}" ] && sip="${vip}"
+            connect="ondemand"
+            router_priority="0"
+            hostname_comment="# "
+            ;;
+
+        *)
+            connect="always"
+            router_priority="2"
+            hostname_comment=
+            ;;
+    esac
 
     [ "${sip}" = "vpn" ] && sip="${vip}"
     [ -z "${sip}" ] && sip="${pip}"
 
-    ifname="vpn0"
-    [ "${os}" = "freebsd" ] && ifname="tap0"
+    if [ ! -z "${unique_names[${name}]}" ]
+        then
+        echo >&2 "Name '${name}' for IP ${pip} already exists with IP ${unique_names[${name}]}."
+        exit 1
+    fi
 
-    ifupdata="${BASE_NETWORK}.0/24|${vip}"
+    if [ "${pip}" != "dynamic" -a ! -z "${unique_pips[${pip}]}" ]
+        then
+        echo >&2 "Public IP '${pip}' for ${name} already exists for ${unique_pips[${pip}]}."
+        exit 1
+    fi
 
-    router_priority="1"
-    hostname_comment=
-    connect="always"
-    [ "${pip}" = "dynamic" ] && connect="ondemand" && hostname_comment="# " && router_priority="0"
-
-    [ ! -z "${unique_names[${name}]}" ] && echo >&2 "Name '${name}' for IP ${pip} already exists with IP ${unique_names[${name}]}." && exit 1
-    [ "${pip}" != "dynamic" -a ! -z "${unique_pips[${pip}]}" ] && echo >&2 "Public IP '${pip}' for ${name} already exists for ${unique_pips[${pip}]}." && exit 1
-    [ ! -z "${unique_vips[${vip}]}" ] && echo >&2 "VPN IP '${vip}' for ${name} already exists for ${unique_vips[${vip}]}." && exit 1
+    if [ ! -z "${unique_vips[${vip}]}" ]
+        then
+        echo >&2 "VPN IP '${vip}' for ${name} already exists for ${unique_vips[${vip}]}."
+        exit 1
+    fi
 
     unique_names[${name}]="${pip}"
     unique_pips[${pip}]="${name}"
     unique_vips[${vip}]="${name}"
 
-    if [ "${pip}" != "dynamic" ]
+    if [ -f ids/${name} ]
         then
-        printf "%-15s %s\n" "${pip}" "${name}" >>conf.d/hosts.real
+        gvpe_id[${name}]=$(<ids/${name})
+    else
+        max_id=$((max_id + 1))
+        echo "${max_id}" >ids/.max
+        gvpe_id[${name}]=${max_id}
     fi
-    printf "%-15s %s\n" "${vip}" "${name}" >>conf.d/hosts.vpn
+    echo "${gvpe_id[${name}]}" >ids/${name}
 
-    cat >conf.d/status/${c} <<EOF
-nodeid="${c}"
+    if [ ! -z "${gvpe_name_by_id[${gvpe_id[${name}]}]}" ]
+        then
+        echo >&2 "Node '${name}' gets ID ${gvpe_id[${name}]} that points to node '${gvpe_name_by_id[${gvpe_id[${name}]}]}'"
+        exit 1
+    fi
+    gvpe_name_by_id[${gvpe_id[${name}]}]=${name}
+
+    gvpe_name[${name}]="${name}"
+    gvpe_os[${name}]="${os}"
+    gvpe_vip[${name}]="${vip}"
+    gvpe_sip[${name}]="${sip}"
+    gvpe_pip[${name}]="${pip}"
+    gvpe_port[${name}]="${port}"
+    gvpe_ifname[${name}]="${ifname}"
+    gvpe_ifupdata[${name}]="${ifupdata}"
+    gvpe_connect[${name}]="${connect}"
+    gvpe_router_priority[${name}]="${router_priority}"
+}
+
+foreach_node() {
+    local callback="${1}" name
+
+    for name in "${gvpe_name_by_id[@]}"
+    do
+        # echo >&2 "Calling ${callback} for ${name} (${gvpe_id[${name}]})"
+        ${callback} "${name}"
+    done
+}
+
+node_status_file() {
+    local name="${1}"
+
+    echo "${name}" >>conf.d/status/nodes
+
+    cat >conf.d/status/${name} <<EOF
+nodeid="${gvpe_id[${name}]}"
 name="${name}"
 status="down"
-ip="${vip}"
+ip="${gvpe_vip[${name}]}"
 si=""
-pip="${pip}"
-pipport="${port}"
-rip="${pip}"
-ripport="${port}"
+pip="${gvpe_pip[${name}]}"
+pipport="${gvpe_port[${name}]}"
+rip="${gvpe_pip[${name}]}"
+ripport="${gvpe_port[${name}]}"
 mac=""
-ifupdata="${ifupdata}"
+ifupdata="${gvpe_ifupdata[${name}]}"
 timestamp="$(date +%s)"
 EOF
+}
+
+node_gvpe_conf() {
+    local name="${1}" hostname_comment
+
+    case "${gvpe_pip[${name}]}" in
+        dynamic)
+            hostname_comment="# "
+            ;;
+
+        *)
+            hostname_comment=
+            ;;
+    esac
 
     cat >>conf.d/gvpe.conf <<EOF
 
 # -----------------------------------------------------------------------------
 node = ${name}
 
-${hostname_comment}hostname = ${pip}
+${hostname_comment}hostname = ${gvpe_pip[${name}]}
 on ${name} hostname = 0.0.0.0
-on ${name} ifname = ${ifname}
-udp-port = ${port}
-tcp-port = ${port}
-connect = ${connect} # ondemand | never | always | disabled
-router-priority = ${router_priority}
-on ${name} if-up-data = ${ifupdata}
+on ${name} ifname = ${gvpe_ifname[${name}]}
+udp-port = ${gvpe_port[${name}]}
+tcp-port = ${gvpe_port[${name}]}
+connect = ${gvpe_connect[${name}]} # ondemand | never | always | disabled
+router-priority = ${gvpe_router_priority[${name}]}
+on ${name} if-up-data = ${gvpe_ifupdata[${name}]}
 # allow-direct = *
 # deny-direct = *
 # on ${name} low-power = yes # on laptops
@@ -225,22 +304,10 @@ node = ${name}
 on ${name} include local.conf
 
 EOF
+}
 
-    cat >systemd/${name}.service <<EOF
-# DO NOT EDIT - automatically generated by ${ME}
-[Unit]
-Description=gvpe
-After=network.target
-Before=remote-fs.target
-
-[Service]
-ExecStart=/usr/local/sbin/gvpe -c /etc/gvpe -D ${name}
-KillMode=process
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
+node_keys() {
+    local name="${1}"
 
     if [ ! -f "keys/${name}" -o ! -f "keys/${name}.privkey" ]
     then
@@ -249,88 +316,140 @@ EOF
         run ../sbin/gvpectrl -c ../conf.d -g ${name}
         cd ..
     fi
+
     if [ ! -f "conf.d/pubkey/${name}" ]
     then
-        run cp keys/${name} conf.d/pubkey/${name}
+        run cp -p keys/${name} conf.d/pubkey/${name}
     fi
-done
+}
 
-cat conf.d/gvpe.conf.end >>conf.d/gvpe.conf
-rm conf.d/gvpe.conf.end
+node_hosts() {
+    local name="${1}"
 
-echo "# END gvpe real" >>conf.d/hosts.real
-echo "# END gvpe vpn"  >>conf.d/hosts.vpn
+    if [ "${gvpe_pip[${name}]}" != "dynamic" ]
+        then
+        printf "%-15s %s\n" "${gvpe_pip[${name}]}" "${name}" >>conf.d/hosts.real
+    fi
+    printf "%-15s %s\n" "${gvpe_vip[${name}]}" "${name}" >>conf.d/hosts.vpn
+}
 
-# copy the files
-for h in ${all}
-do
-    name=$(echo "${h}" | cut -d '|' -f 1)
-    p=$(echo "${h}"    | cut -d '|' -f 2)
-    vip=$(echo "${h}"  | cut -d '|' -f 3)
-    os=$(echo "${h}"   | cut -d '|' -f 4)
-    sip=$(echo "${h}"  | cut -d '|' -f 5)
-    pip=$(echo "${p}"  | cut -d ':' -f 1)
-    port=$(echo "${p}" | cut -d ':' -f 2)
+node_provision_files() {
+    local name="${1}"
 
-    [ "${sip}" = "vpn" ] && sip="${vip}"
-    [ -z "${sip}" ] && sip="${pip}"
-
+    echo "${name}" >conf.d/hostname
     run cp keys/${name}.privkey conf.d/hostkey
-    run cp systemd/${name}.service conf.d/gvpe.service
     [ -f "gvpe-conf-d-on-${name}.tar.gz" ] && run rm "gvpe-conf-d-on-${name}.tar.gz"
     run tar -zcpf "gvpe-conf-d-on-${name}.tar.gz" conf.d/
 
     # do not provision hosts with O/S set to 'none'
-    if [ "${os}" != "none" -a "${sip}" != "none" ]
+    if [ "${gvpe_os[${name}]}" != "none" -a "${gvpe_sip[${name}]}" != "none" ]
         then
         echo >&2
-        echo >&2 "Provisioning: ${name} (${sip})"
+        echo >&2 "Provisioning: ${name} (${gvpe_sip[${name}]})"
 
-        if [ "${sip}" = "localhost" ]
+        if [ "${gvpe_sip[${name}]}" = "localhost" ]
             then
             run sudo rsync -HaSPv sbin/ /usr/local/sbin/
-            run sudo rsync -HaSPv sbin.${os}/ /usr/local/sbin/
+            run sudo rsync -HaSPv sbin.${gvpe_os[${name}]}/ /usr/local/sbin/
             run sudo rsync -HaSPv conf.d/ /etc/gvpe/
         else
-            run rsync -HaSPv sbin/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${sip}:/usr/local/sbin/
-            run rsync -HaSPv sbin.${os}/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${sip}:/usr/local/sbin/
-            run rsync -HaSPv conf.d/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${sip}:/etc/gvpe/
+            run rsync -HaSPv sbin/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/usr/local/sbin/
+            run rsync -HaSPv sbin.${gvpe_os[${name}]}/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/usr/local/sbin/
+            run rsync -HaSPv conf.d/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/etc/gvpe/
         fi
     fi
 
-    run rm conf.d/gvpe.service
     run rm conf.d/hostkey
-done
+    run rm conf.d/hostname
+}
 
-# copy the files
-for h in ${all}
-do
-    name=$(echo "${h}" | cut -d '|' -f 1)
-    p=$(echo "${h}"    | cut -d '|' -f 2)
-    vip=$(echo "${h}"  | cut -d '|' -f 3)
-    os=$(echo "${h}"   | cut -d '|' -f 4)
-    sip=$(echo "${h}"  | cut -d '|' -f 5)
-    pip=$(echo "${p}"  | cut -d ':' -f 1)
-    port=$(echo "${p}" | cut -d ':' -f 2)
+node_setup() {
+    local name="${1}"
 
-    [ "${sip}" = "vpn" ] && sip="${vip}"
-    [ -z "${sip}" ] && sip="${pip}"
-
-    if [ "${os}" != "none" -a "${sip}" != "none" ]
+    if [ "${gvpe_os[${name}]}" != "none" -a "${gvpe_sip[${name}]}" != "none" ]
         then
         echo >&2
-        echo >&2 "Setting up GVPE on: ${name} (${sip})"
+        echo >&2 "Setting up GVPE on: ${name} (${gvpe_sip[${name}]})"
         
         # try systemd
 
         failed=0
-        if [ "${sip}" = "localhost" ]
+        if [ "${gvpe_sip[${name}]}" = "localhost" ]
             then
             # it will sudo by itself if needed
             run /etc/gvpe/setup.sh /etc/gvpe || failed=1
         else
             # it will sudo by itself if needed
-            run ssh "${sip}" "/etc/gvpe/setup.sh /etc/gvpe" || failed=1
+            run ssh "${gvpe_sip[${name}]}" "/etc/gvpe/setup.sh /etc/gvpe" || failed=1
         fi
     fi
-done
+}
+
+configure() {
+    local c=0
+    while [ ${c} -lt ${max_id} ]
+    do
+        c=$((c + 1))
+        if [ -z "${gvpe_name_by_id[${c}]}" ]
+            then
+            echo >&2 "Missing id ${c}. Please don't remove nodes. Disable them."
+            exit 1
+        fi  
+    done
+
+    # generate needed files
+    foreach_node node_status_file
+    foreach_node node_gvpe_conf
+    foreach_node node_hosts
+    foreach_node node_keys
+
+    # finalize the files
+    cat conf.d/gvpe.conf.end >>conf.d/gvpe.conf
+    cat >>conf.d/gvpe.conf <<EOF
+
+# -----------------------------------------------------------------------------
+# load routing priority
+include routing.conf
+EOF
+    rm conf.d/gvpe.conf.end
+
+    echo "# END gvpe real" >>conf.d/hosts.real
+    echo "# END gvpe vpn"  >>conf.d/hosts.vpn
+}
+
+provision() {
+    # provision files
+    foreach_node node_provision_files
+}
+
+setup() {
+    # setup nodes
+    foreach_node node_setup
+}
+
+
+# -----------------------------------------------------------------------------
+# configuration
+
+#    HOSTNAME             PUBLIC IP : PORT        VIRTUAL IP          O/S     SSH IP
+node box                  dynamic:${PORT}         ${BASE_NETWORK}.1   linux   '195.97.5.206'
+node boxe                 dynamic:${PORT}         ${BASE_NETWORK}.2   linux   '10.11.13.1'
+node costa                dynamic:$((PORT - 1))   ${BASE_NETWORK}.3   linux   'localhost'
+node london               139.59.166.55:${PORT}   ${BASE_NETWORK}.10  linux   ''
+node atlanta              185.93.0.89:${PORT}     ${BASE_NETWORK}.20  linux   ''
+node west-europe          13.93.125.124:${PORT}   ${BASE_NETWORK}.30  linux   ''
+node bangalore            139.59.0.212:${PORT}    ${BASE_NETWORK}.40  linux   ''
+node frankfurt            46.101.193.115:${PORT}  ${BASE_NETWORK}.50  linux   ''
+node sanfrancisco         104.236.149.236:${PORT} ${BASE_NETWORK}.60  linux   ''
+node toronto              159.203.30.96:${PORT}   ${BASE_NETWORK}.70  linux   ''
+node singapore            128.199.80.131:${PORT}  ${BASE_NETWORK}.80  linux   ''
+node newyork              162.243.236.205:${PORT} ${BASE_NETWORK}.90  linux   ''
+node aws-fra              35.156.164.190:${PORT}  ${BASE_NETWORK}.100 linux   ''
+node netdata-build-server 40.68.190.151:${PORT}   ${BASE_NETWORK}.110 linux   ''
+node freebsd              178.62.98.199:${PORT}   ${BASE_NETWORK}.120 freebsd ''
+
+configure
+provision
+setup
+
+exit 0

@@ -40,10 +40,10 @@ EOF
 printf "%3s %-25s %-15s %-25s %-6s %-20s\n" \
 	"ID" "Name" "VPN IP" "REAL IP" "STATUS" "SINCE"
 
-for x in $(ls -t *)
+while read x
 do
-	[[ ! "${x}" =~ ^[0-9]+$ ]] && continue
-	[ "${x}" = "${MYNODEID}" ] && continue
+	[ "${x}" = "${MYNODENAME}" ] && continue
+	[ ! -f "${x}" ] && echo >&2 "File '${x}' missing!" && continue
 
 	. ./${x}
 
@@ -57,6 +57,6 @@ do
 	fi
 
 	printf "%3u %-25s %-15s %-25s %-6s %-20s\n" \
-		"$((x))" "${name}" "${ip}" "${remote}" "${status}" \
+		"$((nodeid))" "${name}" "${ip}" "${remote}" "${status}" \
 		"$(date -r "./${x}" "+%Y-%m-%d %H:%M:%S")"
-done
+done <nodes

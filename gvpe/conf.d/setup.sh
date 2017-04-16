@@ -6,6 +6,14 @@ if [ "${UID}" != "0" ]
 	exit $?
 fi
 
+run() {
+    printf >&2 " > "
+    printf >&2 "%q " "${@}"
+    printf >&2 "\n"
+    "${@}"
+    return $?
+}
+
 CONFBASE=${1-/etc/gvpe}
 
 
@@ -42,6 +50,18 @@ fi
 
 
 # -----------------------------------------------------------------------------
+# generate the local GVPE configuration overrides file
+
+if [ ! -f ${CONFBASE}/routing.conf ]
+	then
+	cat >${CONFBASE}/routing.conf <<EOF
+# local node GVPE configuration overrides for routing order
+# use /usr/local/sbin/gvpe-routing-order.sh to update this
+EOF
+fi
+
+
+# -----------------------------------------------------------------------------
 # generate the local GVPE if-up script
 
 if [ ! -f ${CONFBASE}/if-up.local ]
@@ -66,15 +86,17 @@ chmod 755 ${CONFBASE}/if-up.local
 failed=0
 if [ -d /etc/systemd/system ]
     then
-    cp ${CONFBASE}/gvpe.service /etc/systemd/system/
-    systemctl daemon-reload || failed=1
-    systemctl restart gvpe || failed=1
+    run cp ${CONFBASE}/gvpe.service /etc/systemd/system/ || failed=1
+    [ ${failed} -eq 0 ] && run systemctl daemon-reload || failed=1
+    [ ${failed} -eq 0 ] && run systemctl restart gvpe || failed=1
+else
+	failed=1
 fi
 
 if [ ${failed} -eq 1 ]
 	then
 	failed=0
-	killall gvpe || failed=1
+	run killall gvpe || failed=1
 fi
 
 if [ ${failed} -eq 1 ]

@@ -25,10 +25,10 @@ DESTPORT : ${DESTPORT}
 STATE    : ${STATE}
 EOF
 
-[ -f ${CONFBASE}/status/${DESTID} ] && \
-	. ${CONFBASE}/status/${DESTID}
+[ -f ${CONFBASE}/status/${DESTNODE} ] && \
+	. ${CONFBASE}/status/${DESTNODE}
 
-cat >${CONFBASE}/status/${DESTID} <<EOF
+cat >${CONFBASE}/status/${DESTNODE} <<EOF
 nodeid="${DESTID}"
 name="${DESTNODE}"
 status="${STATE}"
