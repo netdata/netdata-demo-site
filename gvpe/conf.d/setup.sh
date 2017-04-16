@@ -81,6 +81,63 @@ chmod 755 ${CONFBASE}/if-up.local
 
 
 # -----------------------------------------------------------------------------
+# generate the local GVPE node-up script
+
+if [ ! -f ${CONFBASE}/node-up.local ]
+    then
+    cat >${CONFBASE}/node-up.local <<EOF
+#!/usr/bin/env bash
+
+# add here commands to be executed when a node joins in
+# (this script is called from ${CONFBASE}/node-up)
+
+
+# exit successfuly to avoid breaking GVPE startup
+exit 0
+EOF
+fi
+chmod 755 ${CONFBASE}/node-up.local
+
+
+# -----------------------------------------------------------------------------
+# generate the local GVPE node-up script
+
+if [ ! -f ${CONFBASE}/node-changed.local ]
+    then
+    cat >${CONFBASE}/node-changed.local <<EOF
+#!/usr/bin/env bash
+
+# add here commands to be executed when a node changes
+# (this script is called from ${CONFBASE}/node-chaned)
+
+
+# exit successfuly to avoid breaking GVPE startup
+exit 0
+EOF
+fi
+chmod 755 ${CONFBASE}/node-changed.local
+
+
+# -----------------------------------------------------------------------------
+# generate the local GVPE node-up script
+
+if [ ! -f ${CONFBASE}/node-down.local ]
+    then
+    cat >${CONFBASE}/node-down.local <<EOF
+#!/usr/bin/env bash
+
+# add here commands to be executed when a node disconnects
+# (this script is called from ${CONFBASE}/node-down)
+
+
+# exit successfuly to avoid breaking GVPE startup
+exit 0
+EOF
+fi
+chmod 755 ${CONFBASE}/node-down.local
+
+
+# -----------------------------------------------------------------------------
 # start or restart GVPE
 
 failed=0
