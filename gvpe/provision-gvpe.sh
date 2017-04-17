@@ -94,7 +94,7 @@ compress = yes
 inherit-tos = yes
 
 # The maximum interval in seconds between retries to establish a connection to this node.
-max-retry = 600
+max-retry = 10
 
 # Expire packets that couldn't be sent after this many seconds.
 max-ttl = 30
@@ -102,8 +102,8 @@ max-ttl = 30
 # The maximum number of packets that will be queued.
 max-queue = 1024
 
-# all hosts can be used are routers, but all the other hosts decide if they need it.
-router-priority = 1
+# all hosts can be used are routers.
+router-priority = 10
 
 EOF
 
@@ -172,13 +172,13 @@ node() {
         dynamic)
             [ -z "${sip}" ] && sip="${vip}"
             connect="ondemand"
-            router_priority="0"
+            router_priority="1"
             hostname_comment="# "
             ;;
 
         *)
             connect="always"
-            router_priority="2"
+            router_priority="10"
             hostname_comment=
             ;;
     esac
@@ -371,8 +371,6 @@ node_setup() {
         echo >&2
         echo >&2 "Setting up GVPE on: ${name} (${gvpe_sip[${name}]})"
         
-        # try systemd
-
         failed=0
         if [ "${gvpe_sip[${name}]}" = "localhost" ]
             then
@@ -381,6 +379,24 @@ node_setup() {
         else
             # it will sudo by itself if needed
             run ssh "${gvpe_sip[${name}]}" "/etc/gvpe/setup.sh /etc/gvpe" || failed=1
+        fi
+    fi
+}
+
+node_routing_order() {
+    local name="${1}"
+
+    if [ "${gvpe_os[${name}]}" != "none" -a "${gvpe_sip[${name}]}" != "none" ]
+        then
+        echo >&2
+        echo >&2 "Calculating GVPE routing order on: ${name} (${gvpe_sip[${name}]})"
+        
+        if [ "${gvpe_sip[${name}]}" = "localhost" ]
+            then
+            # it will sudo by itself if needed
+            run sudo /usr/local/sbin/gvpe-routing-order.sh || failed=1
+        else
+            run ssh "${gvpe_sip[${name}]}" "\`which sudo\` /usr/local/sbin/gvpe-routing-order.sh" || failed=1
         fi
     fi
 }
@@ -428,6 +444,11 @@ provision() {
 activate() {
     # setup nodes
     foreach_node node_setup
+}
+
+save_routing_order() {
+    # setup nodes
+    foreach_node node_routing_order
 }
 
 source nodes.conf
