@@ -20,16 +20,23 @@
 - `tcp`, GVPE supports plain TCP but also tunneled through HTTPS proxies tcp connections.
 - `dns` (this is not compiled in the binary files in this repo).
 
-6. GVPE packages do not seem to be available in many operating systems, while TINC seems to be available everywhere.
+6. GVPE communication between any 2 nodes cannot be sniffed or faked even by other nodes in the same VPN. I am not sure if this is also supported by TINC.
+
+7. GVPE packages do not seem to be available in many operating systems, while TINC seems to be available everywhere.
 
 
 ## So, why GVPE?
 
 Yes, it seems that TINC is more capable and well maintained than GVPE. So why GVPE?
 
-I decided to use GVPE for interconnecting netdata VMs, because GVPE seems a lot simpler and straight forward. I liked the idea that all the nodes of the VPN will be statically configured and routing is a configure-time decision. I also liked the broad range of transport protocols supported and the ability to statically configure the order routers will be evaluated.
+I decided to use GVPE for interconnecting netdata VMs, because GVPE seems a lot simpler and straight forward. I liked the idea that all the nodes of the VPN will be statically configured and routing is a configure-time decision. I also liked the broad range of transport protocols supported.
 
-Of course, GVPE lacks a management system, to easily provision the entire network with changes. The files in this directory attempt to provide that.
+The key limitations of GVPE in netdata case are:
+
+1. The lack of any automated mechanism for attempting multiple protocols between any 2 nodes.
+2. The lack of any automated mechanism to fallback from direct to routed communications between any 2 nodes.
+
+GVPE also lacks a management system, to easily provision the entire network with changes. The files in this directory attempt to provide that.
 
 
 ## Links
@@ -64,8 +71,8 @@ VPN_NETWORK="${BASE_IP}.0/24"
 PORT="49999"
 
 #    HOSTNAME             PUBLIC IP : PORT        VIRTUAL IP          O/S     SSH IP
-node box                  dynamic:${PORT}         ${BASE_IP}.1        linux   '195.97.5.206'
-node boxe                 dynamic:${PORT}         ${BASE_IP}.2        linux   '10.11.13.1'
+node box                  dynamic:${PORT}         ${BASE_IP}.1        linux   'vpn'
+node boxe                 dynamic:${PORT}         ${BASE_IP}.2        linux   'vpn'
 node costa                dynamic:$((PORT - 1))   ${BASE_IP}.3        linux   'localhost'
 node london               139.59.166.55:${PORT}   ${BASE_IP}.10       linux   ''
 node atlanta              185.93.0.89:${PORT}     ${BASE_IP}.20       linux   ''
@@ -97,7 +104,7 @@ activate
 
 3. When the script finsihes successfully, all systems that are using `systemd` will be running `gvpe` (binaries and script will be saved at `/usr/local/sbin` and configuration at `/etc/gvpe`). For non-systemd systems you will have to ssh to the nodes manually and add `/usr/local/sbin/gvpe-supervisor.sh start` to your `/etc/rc.local` or `/etc/local.d`. Run it also by hand to start gvpe without rebooting. You will not need to do this again. Re-executing `provision-gvpe.sh` will restart `gvpe` even on these nodes.
 
-4. For most systems, no firewall change should be needed. Yes, gvpe will get connected without any change to your firewall. The reason is that all nodes are attempting to connect to all other nodes, using raw IP, ICMP, UDP and TCP. For all kinds of connections except TCP, the firewalls will encounter outbound connections, which will be replied back. This allows the connections to be established. Of course you will need to configure the firewall for all nodes if you use any `dynamic` nodes.
+4. For most systems, no firewall change should be needed. Yes, gvpe will get connected without any change to your firewall. The reason is that all nodes are attempting to connect to all other nodes. So firewalls will encounted both incbound and outbound communications, making them believe the connection was an outbound one that should be allowed. This allows connections to be established without altering the firewall, at least of UDP communication. Of course you will need to configure the firewall for all nodes if you use any `dynamic` nodes.
 
 5. You can see the status of all nodes by running [`/usr/local/sbin/gvpe-status.sh`](sbin/gvpe-status.sh) on each node. You will get something like this:
 
@@ -132,6 +139,6 @@ Up 15, Down 0, Total 15 nodes
 
 7. If a node fails connect, you may need to disable a few protocols for it. On the failing node, edit `/etc/gvpe/local.conf` to override any of the default settings. Do not edit `/etc/gvpe/gvpe.conf`, as this will be overwritten when `provision-gvpe.sh` pushes new configuration. On amazon EC2 nodes, for example, I had to disable `rawip` and `icmp`.
 
-8. If you need to add static routes or take other actions when gvpe starts, nodes are connected, disconnected or updated, you will have to do it by hand, on each node, by editing all the `.local` files in `/etc/gvpe`. Keep in mind you can place any of these files in `conf.d` and `provision-gvpe.sh` will push it to all nodes (but note it will be executed on all nodes, without exception - normally static routing should be executed on all nodes, except one - the node that should route this traffic to its local network - you should handle this case by code in the script).
+8. If you need to add static routes to the routing tables of the nodes or take other actions when gvpe starts, nodes are connected, disconnected or updated, you will have to do it by hand, on each node, by editing all the `.local` files in `/etc/gvpe`. Keep in mind you can place any of these files in `conf.d` and `provision-gvpe.sh` will push it to all nodes (but note it will be executed on all nodes, without exception - normally static routing should be executed on all nodes, except one - the node that should route this traffic to its local network - you should handle this case by code in the script).
 
 9. The scripts try to maintain persistent IDs for nodes. GVPE uses the order of the nodes in `gvpe.conf` to determine the ID of each node. The ID is used in the packets to identify the keys that should be used. If an update re-arranges the nodes, gvpe on all nodes will have to be restarted for the communication to be restored. So, the scripts try to maintain the same ID for each node, indepently of the order the nodes appear in `nodes.conf`. If you need to remove a node through, I suggest to keep it with its `SSH IP` set to `none`.

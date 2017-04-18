@@ -2,6 +2,12 @@
 
 set -e
 
+STATIC_NODE_ROUTER_PRIORITY="1"
+DYNAMIC_NODE_ROUTER_PRIORITY="0"
+
+STATIC_NODE_CONNECT="always"
+DYNAMIC_NODE_CONNECT="ondemand"
+
 ME="$(realpath ${0})"
 NULL=
 
@@ -94,16 +100,16 @@ compress = yes
 inherit-tos = yes
 
 # The maximum interval in seconds between retries to establish a connection to this node.
-max-retry = 10
+max-retry = 60
 
 # Expire packets that couldn't be sent after this many seconds.
-max-ttl = 30
+max-ttl = 120
 
 # The maximum number of packets that will be queued.
 max-queue = 1024
 
-# all hosts can be used are routers.
-router-priority = 10
+# all hosts can be used as routers.
+router-priority = 1
 
 EOF
 
@@ -146,7 +152,7 @@ declare -A gvpe_router_priority=()
 
 node() {
     local name="${1// /}" p="${2// /}" vip="${3// /}" os="${4// /}" sip="${5// /}"
-    local pip port ifname ifupdata connect router_priority hostname_comment
+    local pip port ifname ifupdata connect router_priority
 
     pip=$(echo "${p}"  | cut -d ':' -f 1)
     port=$(echo "${p}" | cut -d ':' -f 2)
@@ -171,15 +177,13 @@ node() {
     case "${pip}" in
         dynamic)
             [ -z "${sip}" ] && sip="${vip}"
-            connect="ondemand"
-            router_priority="1"
-            hostname_comment="# "
+            connect="${DYNAMIC_NODE_CONNECT}"
+            router_priority="${DYNAMIC_NODE_ROUTER_PRIORITY}"
             ;;
 
         *)
-            connect="always"
-            router_priority="10"
-            hostname_comment=
+            connect="${STATIC_NODE_CONNECT}"
+            router_priority="${STATIC_NODE_ROUTER_PRIORITY}"
             ;;
     esac
 
