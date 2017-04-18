@@ -2,6 +2,9 @@
 
 [GVPE](http://software.schmorp.de/pkg/gvpe.html) is a mesh VPN: a number of hosts running GVPE will get a virtual Ethernet interface (TAP) connecting them all together via encrypted communication. It is mesh, meaning that all hosts talk directly to each other, although routed communication is also supported.
 
+
+## GVPE and TINC
+
 [GVPE](http://software.schmorp.de/pkg/gvpe.html) is very close to [TINC](https://www.tinc-vpn.org/), with the following differences (I found):
 
 1. GVPE security is decided at compile-time, while TINC at configure-time. This repo includes statically linked GVPE binaries for Linux and FreeBSD, compiled with the strongest security settings GVPE supports.
@@ -27,16 +30,29 @@
 
 ## So, why GVPE?
 
-Yes, it seems that TINC is more capable and well maintained than GVPE. So why GVPE?
+Yes, it seems that TINC is more capable than GVPE. So why GVPE?
 
-I decided to use GVPE for interconnecting netdata VMs, because GVPE seems a lot simpler and straight forward. I liked the idea that all the nodes of the VPN will be statically configured and routing is a configure-time decision. I also liked the broad range of transport protocols supported.
+I decided to use GVPE for interconnecting netdata VMs, because GVPE seems a lot simpler and straight forward. I liked the idea that all the nodes of the VPN will be statically configured and routing order is a configure-time decision. I also liked the broad range of transport protocols supported.
 
 The key limitations of GVPE in netdata case are:
 
-1. The lack of any automated mechanism for attempting multiple protocols between any 2 nodes.
-2. The lack of any automated mechanism to fallback from direct to routed communications between any 2 nodes.
+1. The lack of any automated mechanism for attempting multiple protocols between any 2 nodes. So, if for example `rawip` does not work for a node, manual re-configuration of the node is required to switch to another protocol.
 
-GVPE also lacks a management system, to easily provision the entire network with changes. The files in this directory attempt to provide that.
+2. The lack of any automated mechanism to fallback from direct to routed communications between any 2 nodes. So, if for example, due to temporary network issues a node cannot directly reach another node, gvpe will not attempt to re-route packets via another node is can connect to both.
+
+
+## What are the GVPE files on this repo?
+
+The files in this directory attempt to easily provision changes to the entire VPN network:
+
+1. Statically built gvpe binaries are provided for x64 Linux and FreeBSD. These binaries should be usable on any x64 Linux and FreeBSD.
+2. A global configuration file ([nodes.conf](nodes.conf)) handles all the configuration for all nodes.
+3. GVPE configuration `gvpe.conf` is common on all nodes. The script maintains the order of nodes (nodeid) across runs.
+4. Custom gvpe configuration for nodes in maintained in `local.conf` and `routing.conf`. Both of these files are gvpe configurations and are not overwritten by updates.
+5. A script ([provision-gvpe.sh](provision-gvpe.sh)) provisions everything (initial setup and updates) on all nodes (via SSH).
+6. GVPE `if-up`, `node-up`, `node-down` and `node-changed` are provided. Each node may have its own extensions using `if-up.local`, `node-up.local`, `node-down.local` and `node-changed.local` (which are not overwritten by updates).
+7. An enhanced status script [`gvpe-status.sh`](sbin/gvpe-status.sh) is provided, that shows current connection state for all nodes.
+8. A simple script [`gvpe-routing-order.sh](sbin/gvpe-routing-order.sh) is provided to ping all running nodes and based on their latency, decide the order they shoud be used as routers.
 
 
 ## Links
@@ -45,6 +61,7 @@ GVPE also lacks a management system, to easily provision the entire network with
 - [GVPE configuration reference](http://pod.tst.eu/http://cvs.schmorp.de/gvpe/doc/gvpe.conf.5.pod)
 - [GVPE supported transport protocol](http://pod.tst.eu/http://cvs.schmorp.de/gvpe/doc/gvpe.protocol.7.pod)
 - [GVPE O/S support](http://pod.tst.eu/http://cvs.schmorp.de/gvpe/doc/gvpe.osdep.5.pod)
+
 
 ## How to use the scripts on this repo
 
@@ -104,7 +121,7 @@ activate
 
 3. When the script finsihes successfully, all systems that are using `systemd` will be running `gvpe` (binaries and script will be saved at `/usr/local/sbin` and configuration at `/etc/gvpe`). For non-systemd systems you will have to ssh to the nodes manually and add `/usr/local/sbin/gvpe-supervisor.sh start` to your `/etc/rc.local` or `/etc/local.d`. Run it also by hand to start gvpe without rebooting. You will not need to do this again. Re-executing `provision-gvpe.sh` will restart `gvpe` even on these nodes.
 
-4. For most systems, no firewall change should be needed. Yes, gvpe will get connected without any change to your firewall. The reason is that all nodes are attempting to connect to all other nodes. So firewalls will encounted both incbound and outbound communications, making them believe the connection was an outbound one that should be allowed. This allows connections to be established without altering the firewall, at least of UDP communication. Of course you will need to configure the firewall for all nodes if you use any `dynamic` nodes.
+4. For most systems, no firewall change should be needed. Yes, gvpe will get connected without any change to your firewall. The reason is that all nodes are attempting to connect to all other nodes. So firewalls will encounted both incbound and outbound communications, making them believe the connection was an outbound one that should be allowed. This allows connections to be established without altering the firewall, at least for UDP communications. Of course you will need to configure the firewall for all nodes if you use any `dynamic` nodes.
 
 5. You can see the status of all nodes by running [`/usr/local/sbin/gvpe-status.sh`](sbin/gvpe-status.sh) on each node. You will get something like this:
 
