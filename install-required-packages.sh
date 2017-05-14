@@ -1099,7 +1099,8 @@ fi
 # debian / ubuntu
 
 validate_install_apt_get() {
-	dpkg -l >/dev/null 2>&1 "${*}" || echo "${*}"
+	echo >&2 " > Checking if package '${*}' is installed..."
+	[ "$(dpkg-query -W --showformat='${Status}\n' "${*}")" = "install ok installed" ] || echo "${*}"
 }
 
 install_apt_get() {
