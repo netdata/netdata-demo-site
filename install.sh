@@ -140,7 +140,8 @@ myadduser() {
 		exit 1
 	fi
 
-	mkdir -p files/${home}/.ssh
+	mkdir -p files/${home}/.ssh || exit 1
+	mkdir -p ${home}/.ssh || exit 1
 	if [ -f "${home}/.ssh/authorized_keys" ]
 		then
 		( echo "${key}"; cat ${home}/.ssh/authorized_keys; ) | sort -u >files/${home}/.ssh/authorized_keys
@@ -152,6 +153,7 @@ myadduser() {
 
 	# add the key to root
 	mkdir -p files/root/.ssh || exit 1
+	mkdir -p /root/.ssh || exit 1
 	if [ -f /root/.ssh/authorized_keys ]
 		then
 		( echo "${key}"; cat /root/.ssh/authorized_keys; ) | sort -u >files/root/.ssh/authorized_keys
