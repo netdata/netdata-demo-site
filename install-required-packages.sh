@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
 export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+export LC_ALL=C
+
+# Be nice on production environments
+renice 19 $$ >/dev/null 2>/dev/null
 
 ME="${0}"
 
@@ -507,12 +511,14 @@ require_cmd() {
 
 	[ ${IGNORE_INSTALLED} -eq 1 ] && return 1
 
-	while [ ! -z "${1}" ]
+	local wanted found
+	for wanted in "${@}"
 	do
-		which "${1}" >/dev/null 2>&1 && return 0
-		command -v "${1}" >/dev/null 2>&1 && return 0
-		shift
+		found="$(which "${wanted}" 2>/dev/null)"
+		[ -z "${found}" ] && found="$(command -v "${wanted}" 2>/dev/null)"
+		[ ! -z "${found}" -a -x "${found}" ] && return 0
 	done
+
 	return 1
 }
 
@@ -690,6 +696,10 @@ declare -A pkg_nodejs=(
 	['centos-6']="WARNING|To install nodejs check: https://nodejs.org/en/download/package-manager/"
 	['debian-6']="WARNING|To install nodejs check: https://nodejs.org/en/download/package-manager/"
 	['debian-7']="WARNING|To install nodejs check: https://nodejs.org/en/download/package-manager/"
+	)
+
+declare -A pkg_postfix=(
+	['default']="postfix"
 	)
 
 declare -A pkg_pkg_config=(
@@ -1059,8 +1069,9 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA_DEMO_SITE} -ne 0 ]
 		then
-		require_cmd jq    || suitable_package jq
-		require_cmd nginx || suitable_package nginx
+		require_cmd jq       || suitable_package jq
+		require_cmd nginx    || suitable_package nginx
+		require_cmd postconf || suitable_package postfix
 	fi
 }
 

@@ -119,6 +119,31 @@ myinstall etc/profile.d/prompt.sh root:root 755 || exit 1
 myinstall etc/rc.local root:root 755 || exit 1
 
 # -----------------------------------------------------------------------------
+# CONFIGURE POSTFIX
+
+postconf -e "myhostname=$(hostname -s).my-netdata.io"
+postconf -e "mydomain=my-netdata.io"
+postconf -e "myorigin = my-netdata.io"
+postconf -e "mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 172.16.254.0/24"
+postconf -e "relay_domains = my-netdata.io, mynetdata.io, netdata.cloud, netdata.online, netdata.rocks"
+postconf -e "mailbox_size_limit = 0"
+postconf -e "recipient_delimiter = +"
+postconf -e "inet_interfaces = localhost"
+postconf -e "smtpd_tls_security_level=may"
+postconf -# "smtpd_use_tls"
+postconf -# "smtpd_enforce_tls"
+postconf -e "alias_maps = hash:/etc/aliases"
+
+if [ ! -z "$(grep "^root: costa$" /etc/aliases)" ]
+	then
+	cat >>/etc/aliases <<EOF
+root: costa
+costa: costa@tsaousis.gr
+EOF
+	newaliases
+fi
+
+# -----------------------------------------------------------------------------
 # ENABLE EVERTYTHING
 
 echo >&2 "Reloading systemd"
@@ -132,6 +157,9 @@ systemctl enable firehol || exit 1
 
 echo >&2 "Enabling fireqos"
 systemctl enable fireqos || exit 1
+
+echo >&2 "Enabling postfix"
+systemctl enable postfix || exit 1
 
 echo >&2 "Enabling nginx"
 systemctl enable nginx || exit 1
@@ -152,6 +180,9 @@ systemctl restart firehol || exit 1
 
 echo >&2 "Starting fireqos"
 systemctl restart fireqos || exit 1
+
+echo >&2 "Restarting postfix"
+systemctl restart postfix || exit 1
 
 echo >&2 "Starting nginx"
 systemctl restart nginx || exit 1
