@@ -119,10 +119,55 @@ myinstall etc/profile.d/prompt.sh root:root 755 || exit 1
 myinstall etc/rc.local root:root 755 || exit 1
 
 # -----------------------------------------------------------------------------
+# SYSTEMD ACCOUNTING
+
+sed -e 's|^#Default\(.*\)Accounting=.*$|Default\1Accounting=yes|g' </etc/systemd/system.conf >files/etc/systemd/system.conf || exit 1
+myinstall etc/systemd/system.conf root:root 644 || exit 1
+systemctl daemon-reexec
+
+# -----------------------------------------------------------------------------
+# ADD USERS
+
+myadduser() {
+	local username="${1}" key="${2}" home=
+
+	getent passwd "${username}" >/dev/null 2>&1 || useradd -m ${username}
+	
+	eval "local home=~${username}"
+	if [ -z "${home}" -o ! -d "${home}" ]
+		then
+		echo >&2 "Cannot find the home dir of user ${username}"
+		exit 1
+	fi
+
+	mkdir -p files/${home}/.ssh
+	if [ -f "${home}/.ssh/authorized_keys" ]
+		then
+		( echo "${key}"; cat ${home}/.ssh/authorized_keys; ) | sort -u >files/${home}/.ssh/authorized_keys
+	else
+		echo "${key}" >files/${home}/.ssh/authorized_keys
+	fi
+
+	myinstall ./${home}/.ssh/authorized_keys ${username} 644 || exit 1
+
+	# add the key to root
+	mkdir -p files/root/.ssh || exit 1
+	if [ -f /root/.ssh/authorized_keys ]
+		then
+		( echo "${key}"; cat /root/.ssh/authorized_keys; ) | sort -u >files/root/.ssh/authorized_keys
+	else
+		echo "${key}" >files/root/.ssh/authorized_keys
+	fi
+
+	myinstall root/.ssh/authorized_keys root:root 644 || exit 1
+}
+myadduser costa "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCvh2gm+bcosazdtW7kd82in5/8rOB/SmsQnt+vNBpniBwM2TUfpcBpR/ydV3IA0B/tR/vWGm3Ak6pkCrAOm70URKx6aQKeUmqK3TxkXKehZA5eWifcZSyS6StQpPQLWW1PbtviFWwsWiJPA++uWfnMu3B2P2mc3lAUTAPv7Deii1SRTKj9RZW7jZ88mD/5SUSVIudu7f+X1oXycvwen/Zen29ot3E9zzjuqeDD+vGcQp9olfXPSrgR8IGYgdFDHieC9OXPiGS/VgZX+P3YFxR/xpWz1+7hq2TIU+7QFz1kclF+5eWzUiHmdyPj0T97tPHCD5yuQVbTmdHE197YndbB costa@tsaousis.gr"
+
+# -----------------------------------------------------------------------------
 # CONFIGURE POSTFIX
 
-postconf -e "myhostname=$(hostname -s).my-netdata.io"
-postconf -e "mydomain=my-netdata.io"
+postconf -e "myhostname = $(hostname -s).my-netdata.io"
+postconf -e "mydomain = my-netdata.io"
 postconf -e "myorigin = my-netdata.io"
 postconf -e "mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 172.16.254.0/24"
 postconf -e "relay_domains = my-netdata.io, mynetdata.io, netdata.cloud, netdata.online, netdata.rocks"
