@@ -317,7 +317,7 @@ node_keys() {
     then
         echo >&2 "generating keys for: ${name}"
         cd keys
-        run ../sbin/gvpectrl -c ../conf.d -g ${name}
+        run ../sbin.linux/gvpectrl -c ../conf.d -g ${name}
         cd ..
     fi
 
