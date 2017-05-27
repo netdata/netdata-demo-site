@@ -541,6 +541,7 @@ declare -A pkg_autoconf_archive=(
 
 	# exceptions
        ['centos-6']="WARNING|"
+       ['centos-7']="WARNING|"
          ['rhel-6']="WARNING|"
          ['rhel-7']="WARNING|"
 	)
