@@ -8,7 +8,7 @@ os=$(uname -s)
 
 if [ "${os}" = "Linux" ]
 	then
-	:
+	modprobe tun
 elif [ "${os}" = "FreeBSD" ]
 	then
 	kldload if_tap
