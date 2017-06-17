@@ -1043,7 +1043,7 @@ packages() {
 		require_cmd python || suitable_package python
 
 		suitable_package python-yaml
-		suitable_package python-requests
+		# suitable_package python-requests
 		# suitable_package python-pip
 
 		[ ${PACKAGES_NETDATA_PYTHON_MYSQL}    -ne 0 ] && suitable_package python-mysqldb
@@ -1058,7 +1058,7 @@ packages() {
 		require_cmd python3 || suitable_package python3
 
 		suitable_package python3-yaml
-		suitable_package python3-requests
+		# suitable_package python3-requests
 		# suitable_package python3-pip
 
 		[ ${PACKAGES_NETDATA_PYTHON_MYSQL}    -ne 0 ] && suitable_package python3-mysqldb
