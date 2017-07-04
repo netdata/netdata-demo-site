@@ -881,7 +881,8 @@ declare -A pkg_ulogd=(
 	['default']="ulogd"
 
 	# exceptions
-	['ubuntu-16.10']="ulogd2"
+   ['ubuntu-16.10']="ulogd2"
+       ['debian-9']="ulogd2"
 	)
 
 declare -A pkg_unzip=(
