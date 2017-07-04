@@ -167,6 +167,11 @@ myadduser() {
 	fi
 
 	myinstall root/.ssh/authorized_keys root:root 644 || exit 1
+
+	if [ -f files/etc/sudoers.d/${username} ]
+		then
+		myinstall etc/sudoers.d/${username} root:root 400 || exit 1
+	fi
 }
 myadduser costa "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCvh2gm+bcosazdtW7kd82in5/8rOB/SmsQnt+vNBpniBwM2TUfpcBpR/ydV3IA0B/tR/vWGm3Ak6pkCrAOm70URKx6aQKeUmqK3TxkXKehZA5eWifcZSyS6StQpPQLWW1PbtviFWwsWiJPA++uWfnMu3B2P2mc3lAUTAPv7Deii1SRTKj9RZW7jZ88mD/5SUSVIudu7f+X1oXycvwen/Zen29ot3E9zzjuqeDD+vGcQp9olfXPSrgR8IGYgdFDHieC9OXPiGS/VgZX+P3YFxR/xpWz1+7hq2TIU+7QFz1kclF+5eWzUiHmdyPj0T97tPHCD5yuQVbTmdHE197YndbB costa@tsaousis.gr"
 
