@@ -3,8 +3,13 @@
 LC_ALL=C
 umask 022
 
+# find the device of the default gateway
+eth="$(ip -4 route get 8.8.8.8 | grep -oP "dev [^[:space:]]+ " | cut -d ' ' -f 2)"
+[ -z "${eth}" ] && eth="eth0"
+echo >&2 "Assuming default gateway is via device: ${eth}"
+
 # find our IP
-myip=( $(ip -4 address show eth0 | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/') )
+myip=( $(ip -4 address show ${eth} | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/') )
 if [ -z "${myip[*]}" ]
 	then
 	echo >&2 "Cannot find my IP !"
