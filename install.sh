@@ -173,6 +173,32 @@ myadduser costa "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCvh2gm+bcosazdtW7kd82in5/
 # -----------------------------------------------------------------------------
 # CONFIGURE POSTFIX
 
+#if [ ! -d /etc/letsencrypt ]
+	#then
+
+	# echo 'deb http://ftp.debian.org/debian jessie-backports main' | sudo tee /etc/apt/sources.list.d/backports.list
+	# apt-get update
+	# apt-get install letsencrypt python-certbot-nginx -t jessie-backports
+
+	# or
+
+	# cd /usr/src
+	# git clone https://github.com/letsencrypt/letsencrypt.git letsencrypt.git
+	# cd letsencrypt.git/
+	# ./letsencrypt-auto certonly --renew-by-default --webroot --webroot-path=/var/www/html --email costa@tsaousis.gr --text --agree-tos -d ventureer.my-netdata.io
+
+	# edit /etc/nginx/sites-available/default and this inside the server block:
+	#
+	# location ~ /.well-known {
+	#	allow all;
+	# }
+	#
+	# then run:
+	# nginx -t
+	# systemctl restart nginx
+	# certbot certonly --renew-by-default --webroot --webroot-path=/var/www/html --email costa@tsaousis.gr --text --agree-tos -d ventureer.my-netdata.io
+#fi
+
 postconf -e "myhostname = $(hostname -s).my-netdata.io"
 postconf -e "mydomain = my-netdata.io"
 postconf -e "myorigin = my-netdata.io"
