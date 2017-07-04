@@ -858,6 +858,10 @@ declare -A pkg_screen=(
 	['default']="screen"
 	)
 
+declare -A pkg_sudo=(
+	['default']="sudo"
+	)
+
 declare -A pkg_tcpdump=(
 	 ['gentoo']="net-analyzer/tcpdump"
 	['default']="tcpdump"
@@ -878,11 +882,7 @@ declare -A pkg_ulogd=(
 	 ['centos']="WARNING|"
 	   ['rhel']="WARNING|"
 	 ['gentoo']="app-admin/ulogd"
-	['default']="ulogd"
-
-	# exceptions
-   ['ubuntu-16.10']="ulogd2"
-       ['debian-9']="ulogd2"
+	['default']="ulogd2"
 	)
 
 declare -A pkg_unzip=(
@@ -1071,6 +1071,7 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA_DEMO_SITE} -ne 0 ]
 		then
+		require_cmd sudo     || suitable_package sudo
 		require_cmd jq       || suitable_package jq
 		require_cmd nginx    || suitable_package nginx
 		require_cmd postconf || suitable_package postfix
