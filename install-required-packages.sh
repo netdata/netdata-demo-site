@@ -301,12 +301,16 @@ user_picks_distribution() {
 	while [ -z "${REPLY}" ]
 	do
 		read -p "To proceed please write one of these:${opts}: "
+		[ $? -ne 0 ] && continue
+
 		if [ "${REPLY}" = "yum" -a -z "${distribution}" ]
 			then
 			REPLY=
 			while [ -z "${REPLY}" ]
 				do
 				read -p "yum in centos, rhel or fedora? > "
+				[ $? -ne 0 ] && continue
+
 				case "${REPLY,,}" in
 					fedora|rhel)
 						distribution="rhel"
@@ -1558,7 +1562,7 @@ if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]
 
 	if [ ${DONT_WAIT} -eq 0 -a ${NON_INTERACTIVE} -eq 0 ]
 		then
-		read -p "Press ENTER to run it > "
+		read -p "Press ENTER to run it > " || exit 1
 	fi
 
 	${package_installer} "${PACKAGES_TO_INSTALL[@]}" || install_failed $?
