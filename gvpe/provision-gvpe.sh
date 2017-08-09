@@ -340,10 +340,15 @@ node_hosts() {
 node_provision_files() {
     local name="${1}"
 
-    echo "${name}" >conf.d/hostname
-    run cp keys/${name}.privkey conf.d/hostkey
+    local confd="$(run mktemp -d /tmp/gvpe-${name}-XXXXXXXXXX)"
+    [ -z "${confd}" ] && echo >&2 "Cannot create temporary directory" && return 1
+
+    rsync -HaSPv conf.d/ "${confd}/"
+
+    echo "${name}" >${confd}/hostname
+    run cp keys/${name}.privkey ${confd}/hostkey
     [ -f "gvpe-conf-d-on-${name}.tar.gz" ] && run rm "gvpe-conf-d-on-${name}.tar.gz"
-    run tar -zcpf "gvpe-conf-d-on-${name}.tar.gz" conf.d/
+    run tar -zcpf "gvpe-conf-d-on-${name}.tar.gz" ${confd}/
 
     # do not provision hosts with O/S set to 'none'
     if [ "${gvpe_os[${name}]}" != "none" -a "${gvpe_sip[${name}]}" != "none" ]
@@ -355,16 +360,16 @@ node_provision_files() {
             then
             run sudo rsync -HaSPv sbin/ /usr/local/sbin/
             run sudo rsync -HaSPv sbin.${gvpe_os[${name}]}/ /usr/local/sbin/
-            run sudo rsync -HaSPv conf.d/ /etc/gvpe/
+            run sudo rsync -HaSPv ${confd}/ /etc/gvpe/
         else
             run rsync -HaSPv sbin/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/usr/local/sbin/
             run rsync -HaSPv sbin.${gvpe_os[${name}]}/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/usr/local/sbin/
-            run rsync -HaSPv conf.d/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/etc/gvpe/
+            run rsync -HaSPv ${confd}/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/etc/gvpe/
         fi
     fi
 
-    run rm conf.d/hostkey
-    run rm conf.d/hostname
+    run rm -rf "${confd}"
+    return 0
 }
 
 node_setup() {
