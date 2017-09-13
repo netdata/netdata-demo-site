@@ -570,6 +570,10 @@ declare -A pkg_bridge_utils=(
 	['default']="bridge-utils"
 	)
 
+declare -A pkg_chrony=(
+	['default']="chrony"
+	)
+
 declare -A pkg_curl=(
 	 ['gentoo']="net-misc/curl"
 	['sabayon']="net-misc/curl"
@@ -1079,6 +1083,7 @@ packages() {
 		require_cmd jq       || suitable_package jq
 		require_cmd nginx    || suitable_package nginx
 		require_cmd postconf || suitable_package postfix
+		require_cmd chronyd  || suitable_package chrony
 	fi
 }
 
