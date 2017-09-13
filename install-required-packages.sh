@@ -669,6 +669,10 @@ declare -A pkg_lm_sensors=(
 	['default']="lm_sensors"
 	)
 
+declare -A pkg_lxc=(
+	['default']="lxc"
+	)
+
 declare -A pkg_make=(
 	 ['gentoo']="sys-devel/make"
 	['default']="make"
@@ -1079,11 +1083,11 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA_DEMO_SITE} -ne 0 ]
 		then
-		require_cmd sudo     || suitable_package sudo
-		require_cmd jq       || suitable_package jq
-		require_cmd nginx    || suitable_package nginx
-		require_cmd postconf || suitable_package postfix
-		require_cmd chronyd  || suitable_package chrony
+		require_cmd sudo       || suitable_package sudo
+		require_cmd jq         || suitable_package jq
+		require_cmd nginx      || suitable_package nginx
+		require_cmd postconf   || suitable_package postfix
+		require_cmd lxc-create || suitable_package lxc
 	fi
 }
 
