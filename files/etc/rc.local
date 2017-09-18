@@ -16,6 +16,8 @@
 echo 1 >/sys/kernel/mm/ksm/run
 echo 1000 >/sys/kernel/mm/ksm/sleep_millisecs
 
+sleep 60
+
 # wait for conntract kernel module to be initialized
 ok=60
 while [ $ok -ne 0 ]
@@ -26,6 +28,10 @@ do
 done
 sysctl -w net.netfilter.nf_conntrack_max=$[65536*4]
 echo 65536 > /sys/module/nf_conntrack/parameters/hashsize
+
+firehol start
+fireqos start
+
 
 # compiled named
 # /opt/named/sbin/named -u bind -4
