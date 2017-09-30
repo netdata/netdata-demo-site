@@ -1521,7 +1521,7 @@ if [ -z "${package_installer}" -o -z "${tree}" ]
 	detect_package_manager_from_distribution "${distribution}"
 fi
 
-pv=$(python --version 2>/dev/null)
+pv=$(python --version 2>&1)
 if [[ "${pv}" =~ ^Python\ 2.* ]]
 then
 	pv=2
