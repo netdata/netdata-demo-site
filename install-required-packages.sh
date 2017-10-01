@@ -964,14 +964,17 @@ packages() {
 
 	suitable_package distro-sdk
 
-	require_cmd git        || suitable_package git
-	require_cmd gcc        || suitable_package gcc
-	require_cmd make       || suitable_package make
-	require_cmd autoconf   || suitable_package autoconf
+	require_cmd git          || suitable_package git
+
+	require_cmd gcc          || \
+	require_cmd gcc-multilib || suitable_package gcc
+
+	require_cmd make         || suitable_package make
+	require_cmd autoconf     || suitable_package autoconf
 	suitable_package autoconf-archive
-	require_cmd autogen    || suitable_package autogen
-	require_cmd automake   || suitable_package automake
-	require_cmd pkg-config || suitable_package pkg-config
+	require_cmd autogen      || suitable_package autogen
+	require_cmd automake     || suitable_package automake
+	require_cmd pkg-config   || suitable_package pkg-config
 
 	# -------------------------------------------------------------------------
 	# debugging tools for development
