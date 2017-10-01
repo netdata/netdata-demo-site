@@ -109,6 +109,8 @@ if [ ! -z "${demoapikey}" ]
 EOF2
 fi
 
+ok=()
+failed=()
 opwd="$(pwd)"
 for x in $(ls ${lxcbase})
 do
@@ -159,10 +161,26 @@ EOF
 EOF
 
 	lxc-attach -n "${x}" -- /opt/netdata-latest.run --accept
+	if [ $? -eq 0 ]
+		then
+		ok+=("${x}")
+	else
+		failed+=("${x}")
+	fi
 done
 cd "${opwd}" || exit 1
 
-cd /usr/src/netdata-ktsaou.git
+cd /usr/src/netdata.git
 git fetch --all
 git reset --hard origin/master
-./netdata-updater.sh -f
+if [ ! -f ./netdata-updater.sh ]
+	then
+	./netdata-installer.sh
+else
+	./netdata-updater.sh -f
+fi
+
+cat <<FINALLY
+updated : ${ok[@]}
+failed  : ${failed[@]}
+FINALLY
