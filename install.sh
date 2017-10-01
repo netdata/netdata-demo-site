@@ -114,7 +114,7 @@ myinstall etc/nginx/conf.d/netdata.conf root:root 644 || exit 1
 myinstall etc/locale.gen root:root 644 locale-gen || exit 1
 
 # -----------------------------------------------------------------------------
-# COLORFUL PROMPT
+# COLORFULL PROMPT
 
 myinstall etc/profile.d/prompt.sh root:root 755 || exit 1
 
@@ -122,6 +122,12 @@ myinstall etc/profile.d/prompt.sh root:root 755 || exit 1
 # BOOT OPTIONS
 
 myinstall etc/rc.local root:root 755 || exit 1
+
+# -----------------------------------------------------------------------------
+# LXC BRIDGE
+
+myinstall etc/default/lxc-net root:root 755 || exit 1
+
 
 # -----------------------------------------------------------------------------
 # SYSTEMD ACCOUNTING
@@ -250,6 +256,10 @@ systemctl enable nginx || exit 1
 echo >&2 "Enabling netdata"
 systemctl enable netdata || exit 1
 
+echo >&2 "Enabling LXC"
+systemctl enable lxc || exit 1
+
+
 # -----------------------------------------------------------------------------
 # START EVERYTHING
 
@@ -272,6 +282,9 @@ systemctl restart nginx || exit 1
 
 echo >&2 "Restarting netdata"
 systemctl restart netdata || exit 1
+
+echo >&2 "Starting LXC"
+systemctl start lxc || exit 1
 
 echo >&2
 echo >&2 "All done!"
