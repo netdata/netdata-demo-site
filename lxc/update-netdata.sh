@@ -96,7 +96,7 @@ EOF
 
 if [ ! -z "${demoapikey}" ]
 	then
-	cat >>/etc/netdata/stream.conf <<EOF
+	cat >>/etc/netdata/stream.conf <<EOF2
 
 # demo servers
 [${demoapikey}]
@@ -106,7 +106,8 @@ if [ ! -z "${demoapikey}" ]
 	health enabled by default = auto
 	default postpone alarms on connect seconds = 60
 	default proxy enabled = no
-EOF
+EOF2
+fi
 
 opwd="$(pwd)"
 for x in $(ls ${lxcbase})
