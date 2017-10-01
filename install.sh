@@ -124,9 +124,10 @@ myinstall etc/profile.d/prompt.sh root:root 755 || exit 1
 myinstall etc/rc.local root:root 755 || exit 1
 
 # -----------------------------------------------------------------------------
-# LXC BRIDGE
+# LXC
 
 myinstall etc/default/lxc-net root:root 755 || exit 1
+myinstall etc/lxc/default.conf root:root 755 || exit 1
 
 
 # -----------------------------------------------------------------------------
