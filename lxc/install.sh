@@ -11,6 +11,8 @@ NULL=
 was_ok=()
 ok=()
 failed=()
+started=()
+nostart=()
 
 #        NAME         TEMPLATE    DISTRO    RELEASE  ARCH
 for x in \
@@ -89,6 +91,7 @@ do
         	rm -rf "${name}"
         fi
 
+        inst=0
         if [ ! -d "${name}" ]
                 then
                 echo
@@ -98,6 +101,7 @@ do
                 if [ $ret -eq 0 ]
                 	then
                 	ok+=("${name}")
+                        inst=1
                 else
                         echo >&2 "FAILED with code $ret"
                 	failed+=("${name}")
@@ -105,6 +109,20 @@ do
         else
         	echo >&2 "Found installed container: ${name}"
         	was_ok+=("${name}")
+                inst=1
+        fi
+
+        if [ $inst -eq 1 ]
+                then
+                systemctl enable lxc@${name}.service && \
+                        systemctl start lxc@${name}.service
+
+                if [ $? -eq 0 ]
+                        then
+                        started+=("${name}")
+                else
+                        nostart+=("${name}")
+                fi
         fi
 done
 
@@ -114,9 +132,12 @@ cat <<EOF
 
 SUMMARY
 
-were installed   : ${was_ok[*]}
+found installed  : ${was_ok[*]}
 installed now    : ${ok[*]}
 failed to install: ${failed[*]}
+
+started          : ${started[*]}
+failed to start  : ${nostart[*]}
 
 EOF
 
