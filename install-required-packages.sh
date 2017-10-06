@@ -752,7 +752,7 @@ declare -A pkg_python3_mysqldb=(
 	 ['alpine']="WARNING|"
 	   ['arch']="WARNING|"
 	 ['centos']="WARNING|"
-	 ['debian']="WARNING|"
+	 ['debian']="python3-mysqldb"
 	 ['gentoo']="dev-python/mysqlclient"
 	['sabayon']="dev-python/mysqlclient"
 	   ['rhel']="WARNING|"
@@ -760,7 +760,17 @@ declare -A pkg_python3_mysqldb=(
 	['default']="WARNING|"
 
 	# exceptions
-	['ubuntu-16.04']="python3-mysqldb"
+	['debian-6']="WARNING|"
+	['debian-7']="WARNING|"
+	['debian-8']="WARNING|"
+['ubuntu-12.04']="WARNING|"
+['ubuntu-12.10']="WARNING|"
+['ubuntu-13.04']="WARNING|"
+['ubuntu-13.10']="WARNING|"
+['ubuntu-14.04']="WARNING|"
+['ubuntu-14.10']="WARNING|"
+['ubuntu-15.04']="WARNING|"
+['ubuntu-15.10']="WARNING|"
 	)
 
 declare -A pkg_python_psycopg2=(
