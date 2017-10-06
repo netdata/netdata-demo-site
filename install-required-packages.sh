@@ -763,14 +763,14 @@ declare -A pkg_python3_mysqldb=(
 	['debian-6']="WARNING|"
 	['debian-7']="WARNING|"
 	['debian-8']="WARNING|"
-    ['ubuntu-12.04']="WARNING|"
-    ['ubuntu-12.10']="WARNING|"
-    ['ubuntu-13.04']="WARNING|"
-    ['ubuntu-13.10']="WARNING|"
-    ['ubuntu-14.04']="WARNING|"
-    ['ubuntu-14.10']="WARNING|"
-    ['ubuntu-15.04']="WARNING|"
-    ['ubuntu-15.10']="WARNING|"
+   ['ubuntu-12.04']="WARNING|"
+   ['ubuntu-12.10']="WARNING|"
+   ['ubuntu-13.04']="WARNING|"
+   ['ubuntu-13.10']="WARNING|"
+   ['ubuntu-14.04']="WARNING|"
+   ['ubuntu-14.10']="WARNING|"
+   ['ubuntu-15.04']="WARNING|"
+   ['ubuntu-15.10']="WARNING|"
 	)
 
 declare -A pkg_python_psycopg2=(
