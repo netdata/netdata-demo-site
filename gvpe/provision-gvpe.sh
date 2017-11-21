@@ -149,9 +149,10 @@ declare -A gvpe_ifname=()
 declare -A gvpe_ifupdata=()
 declare -A gvpe_connect=()
 declare -A gvpe_router_priority=()
+declare -A gvpe_proto=()
 
 node() {
-    local name="${1// /}" p="${2// /}" vip="${3// /}" os="${4// /}" sip="${5// /}"
+    local name="${1// /}" p="${2// /}" vip="${3// /}" os="${4// /}" sip="${5// /}" proto="${6}"
     local pip port ifname ifupdata connect router_priority
 
     pip=$(echo "${p}"  | cut -d ':' -f 1)
@@ -165,6 +166,10 @@ node() {
         freebsd)
             ifname="tap0"
             ;;
+
+        none)
+     		ifname="none0"
+     		;;
 
         *)
             echo >&2 "Unknown O/S '${os}'"
@@ -239,6 +244,24 @@ node() {
     gvpe_ifupdata[${name}]="${ifupdata}"
     gvpe_connect[${name}]="${connect}"
     gvpe_router_priority[${name}]="${router_priority}"
+
+	local x fproto=
+	for x in ${proto//,/ }
+	do
+		case "${x}" in 
+			any|all)
+				;;
+
+			tcp|udp|rawip|icmp)
+				fproto="${fproto} ${x}"
+				;;
+
+			*)
+				echo >&2 "Ignoring unknown protocol: ${x}"
+				;;
+		esac
+	done
+    gvpe_proto[${name}]="${fproto}"
 }
 
 foreach_node() {
@@ -285,6 +308,26 @@ node_gvpe_conf() {
             ;;
     esac
 
+	local udp="yes" tcp="yes" icmp="yes" rawip="yes"
+	local x proto="${gvpe_proto[${name}]}"
+	if [ ! -z "${proto}" ]
+		then
+		udp="no"
+		tcp="no"
+		icmp="no"
+		rawip="no"
+		for x in ${proto}
+		do
+			case "${x}" in
+				udp) udp="yes";;
+				tcp) tcp="yes";;
+				icmp) icmp="yes";;
+				rawip) rawip="yes";;
+				*) echo >&2 "Invalid protocol: ${x}";;
+			esac
+		done
+	fi
+
     cat >>conf.d/gvpe.conf <<EOF
 
 # -----------------------------------------------------------------------------
@@ -301,6 +344,10 @@ on ${name} if-up-data = ${gvpe_ifupdata[${name}]}
 # allow-direct = *
 # deny-direct = *
 # on ${name} low-power = yes # on laptops
+enable-rawip = ${rawip}
+enable-icmp = ${icmp}
+enable-tcp = ${tcp}
+enable-udp = ${udp}
 EOF
 
     cat >>conf.d/gvpe.conf.end <<EOF
