@@ -4,17 +4,33 @@ LC_ALL=C
 umask 022
 
 # find the device of the default gateway
-eth="$(ip -4 route get 8.8.8.8 | grep -oP "dev [^[:space:]]+ " | cut -d ' ' -f 2)"
-[ -z "${eth}" ] && eth="eth0"
-echo >&2 "Assuming default gateway is via device: ${eth}"
+wan="$(ip -4 route get 8.8.8.8 | grep -oP "dev [^[:space:]]+ " | cut -d ' ' -f 2)"
+[ -z "${wan}" ] && wan="eth0"
+echo >&2 "Assuming default gateway is via device: ${wan}"
 
 # find our IP
-myip=( $(ip -4 address show ${eth} | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/') )
+myip=( $(ip -4 address show ${wan} | grep 'inet' | sed 's/.*inet \([0-9\.]\+\).*/\1/') )
 if [ -z "${myip[*]}" ]
 	then
 	echo >&2 "Cannot find my IP !"
 	exit 1
 fi
+
+hostname_fqdn="$(hostname --fqdn)"
+if [ -z "${hostname_fqdn}" ]
+	then
+	echo >&2 "Please set the hostname of the system by running: hostnamectl set-hostname FQDN-HOSTNAME"
+	exit 1
+fi
+
+
+cat <<EOF
+HOSTNAME     : ${hostname_fqdn} (change it with: hostnamectl set-hostname FQDN-HOSTNAME )
+WAN INTERFACE: ${wan}
+WAN IPv4 IP  : ${myip}
+EOF
+read -p "PRESS ENTER TO CONTINUE > "
+
 
 # -----------------------------------------------------------------------------
 
@@ -41,7 +57,10 @@ myinstall() {
 	fi
 
 	cat "files/${file}" | sed \
+		-e "s|MY_WAN_INTERFACE_TO_BE_REPLACED_HERE|${wan}|g" \
 		-e "s|MY_REAL_IP_TO_BE_REPLACED_HERE|${myip[*]}|g" \
+		-e "s|MY_HOSTNAME_TO_BE_REPLACED_HERE|$(hostname -s)|g" \
+		-e "s|MY_FQDN_HOSTNAME_TO_BE_REPLACED_HERE|${hostname_fqdn}|g" \
 		>"${tmp}"
 
 	if [ ! -s "${tmp}" ]
@@ -99,7 +118,10 @@ myinstall etc/sysctl.d/core.conf root:root 644 || exit 1
 myinstall etc/sysctl.d/synproxy.conf root:root 644 || exit 1
 myinstall etc/sysctl.d/net-buffers.conf root:root 644 || exit 1
 myinstall etc/sysctl.d/net-security.conf root:root 644 || exit 1
+myinstall etc/sysctl.d/inotify.conf root:root 644 || exit 1
 sysctl --system
+
+
 
 # -----------------------------------------------------------------------------
 # NGINX
@@ -107,6 +129,20 @@ sysctl --system
 myinstall etc/nginx/cloudflare.conf root:root 644 || exit 1
 myinstall etc/nginx/conf.d/status.conf root:root 644 || exit 1
 myinstall etc/nginx/conf.d/netdata.conf root:root 644 || exit 1
+
+cat files/etc/nginx/snippets/ssl-certs.conf <<EOF
+ssl_certificate /etc/letsencrypt/live/${hostname_fqdn}/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/${hostname_fqdn}/privkey.pem;
+EOF
+myinstall etc/nginx/snippets/ssl-certs.conf root:root 644 || exit 1
+myinstall etc/nginx/snippets/ssl-params.conf root:root 644 || exit 1
+myinstall etc/nginx/snippets/ssl.conf root:root 644 || exit 1
+
+if [ ! -f /etc/ssl/certs/dhparam.pem ]
+	then
+	openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048 || exit 1
+fi
+
 
 # -----------------------------------------------------------------------------
 # SSH LOCALE
@@ -286,6 +322,21 @@ systemctl restart netdata || exit 1
 
 echo >&2 "Starting LXC"
 systemctl start lxc || exit 1
+
+
+# -----------------------------------------------------------------------------
+
+cat <<EOF
+
+
+
+# FIXME: hostname at /etc/hosts
+# FIXME: include snippets/ssl.conf at /etc/nginx/sites-available/default
+# FIXME: configure logging of timings at nginx.conf
+
+
+
+EOF
 
 echo >&2
 echo >&2 "All done!"
