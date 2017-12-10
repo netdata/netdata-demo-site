@@ -130,7 +130,7 @@ myinstall etc/nginx/cloudflare.conf root:root 644 || exit 1
 myinstall etc/nginx/conf.d/status.conf root:root 644 || exit 1
 myinstall etc/nginx/conf.d/netdata.conf root:root 644 || exit 1
 
-cat files/etc/nginx/snippets/ssl-certs.conf <<EOF
+cat >files/etc/nginx/snippets/ssl-certs.conf <<EOF
 ssl_certificate /etc/letsencrypt/live/${hostname_fqdn}/fullchain.pem;
 ssl_certificate_key /etc/letsencrypt/live/${hostname_fqdn}/privkey.pem;
 EOF
