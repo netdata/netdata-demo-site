@@ -23,11 +23,13 @@ if [ -z "${hostname_fqdn}" ]
 	exit 1
 fi
 
+hostname_resolved="$(host ${hostname_fqdn} | grep ' has address ' | sort -u | cut -d ' ' -f 4)"
 
 cat <<EOF
-HOSTNAME     : ${hostname_fqdn} (change it with: hostnamectl set-hostname FQDN-HOSTNAME )
+HOSTNAME     : ${hostname_fqdn}    (change it with: hostnamectl set-hostname FQDN-HOSTNAME )
 WAN INTERFACE: ${wan}
 WAN IPv4 IP  : ${myip}
+RESOLVED IP  : ${hostname_resolved}
 EOF
 read -p "PRESS ENTER TO CONTINUE > "
 
@@ -105,6 +107,7 @@ myinstall() {
 	return 0
 }
 
+
 # -----------------------------------------------------------------------------
 # FireHOL / FireQOS
 
@@ -149,15 +152,18 @@ fi
 
 myinstall etc/locale.gen root:root 644 locale-gen || exit 1
 
+
 # -----------------------------------------------------------------------------
 # COLORFULL PROMPT
 
 myinstall etc/profile.d/prompt.sh root:root 755 || exit 1
 
+
 # -----------------------------------------------------------------------------
 # BOOT OPTIONS
 
 myinstall etc/rc.local root:root 755 || exit 1
+
 
 # -----------------------------------------------------------------------------
 # LXC
@@ -221,32 +227,6 @@ myadduser costa "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCvh2gm+bcosazdtW7kd82in5/
 # -----------------------------------------------------------------------------
 # CONFIGURE POSTFIX
 
-#if [ ! -d /etc/letsencrypt ]
-	#then
-
-	# echo 'deb http://ftp.debian.org/debian jessie-backports main' | sudo tee /etc/apt/sources.list.d/backports.list
-	# apt-get update
-	# apt-get install letsencrypt python-certbot-nginx -t jessie-backports
-
-	# or
-
-	# cd /usr/src
-	# git clone https://github.com/letsencrypt/letsencrypt.git letsencrypt.git
-	# cd letsencrypt.git/
-	# ./letsencrypt-auto certonly --renew-by-default --webroot --webroot-path=/var/www/html --email costa@tsaousis.gr --text --agree-tos -d ventureer.my-netdata.io
-
-	# edit /etc/nginx/sites-available/default and this inside the server block:
-	#
-	# location ~ /.well-known {
-	#	allow all;
-	# }
-	#
-	# then run:
-	# nginx -t
-	# systemctl restart nginx
-	# certbot certonly --renew-by-default --webroot --webroot-path=/var/www/html --email costa@tsaousis.gr --text --agree-tos -d ventureer.my-netdata.io
-#fi
-
 postconf -e "myhostname = $(hostname -s).my-netdata.io"
 postconf -e "mydomain = my-netdata.io"
 postconf -e "myorigin = my-netdata.io"
@@ -260,14 +240,13 @@ postconf -# "smtpd_use_tls"
 postconf -# "smtpd_enforce_tls"
 postconf -e "alias_maps = hash:/etc/aliases"
 
-if [ ! -z "$(grep "^root: costa$" /etc/aliases)" ]
-	then
-	cat >>/etc/aliases <<EOF
-root: costa
-costa: costa@tsaousis.gr
-EOF
-	newaliases
-fi
+sed -e "s|^root: .*$|root: costa|g" \
+	-e "s|^sysadmin: .*$|sysadmin: costa|g" \
+	-e '$a\' -e 'costa: costa@tsaousis.gr' -e "/^costa: .*$/d" \
+	</etc/aliases >files/etc/aliases
+myinstall etc/aliases root:root 644
+newaliases
+
 
 # -----------------------------------------------------------------------------
 # ENABLE EVERTYTHING
@@ -325,15 +304,58 @@ systemctl start lxc || exit 1
 
 
 # -----------------------------------------------------------------------------
+# SSL (nginx has to be running)
+
+if [ ! -d /etc/letsencrypt/live/${hostname_fqdn}/ ]
+	then
+
+	do_ssl=1
+	if [ "$(hostname -s).my-netdata.io" = "${hostname_fqdn}" ]
+		then
+		echo >&2 "CANNOT INSTALL LETSENCRYPT - WRONG HOSTNAME: $(hostname -s).my-netdata.io is not ${hostname_fqdn}"
+		do_ssl=0
+	fi
+
+	if [ "${myip}" = "${hostname_resolved}" ]
+		then
+		echo >&2 "CANNOT INSTALL LETSENCRYPT - ${hostname_fqdn} is resolved to ${hostname_resolved}, instead of ${myip}"
+		do_ssl=0
+	fi
+
+	if [ ${do_ssl} -eq 1 ]
+		then
+
+		if [ -d /usr/src/letsencrypt.git ]
+			then
+			cd /usr/src/letsencrypt.git || exit 1
+			git fetch --all || exit 1
+			git reset --hard origin/master || exit 1
+		else
+			cd /usr/src
+			git clone https://github.com/letsencrypt/letsencrypt.git letsencrypt.git || exit 1
+			cd letsencrypt.git || exit 1
+		fi
+
+		./letsencrypt-auto certonly --renew-by-default --text --agree-tos \
+			--webroot --webroot-path=/var/www/html \
+			--email costa@tsaousis.gr \
+			-d ${hostname_fqdn} || exit 1
+
+	fi
+fi
+
+
+# -----------------------------------------------------------------------------
 
 cat <<EOF
 
 
 
-# FIXME: hostname at /etc/hosts
-# FIXME: include snippets/ssl.conf at /etc/nginx/sites-available/default
-# FIXME: configure logging of timings at nginx.conf
-
+# FIXME: 1. add hostname at /etc/hosts
+# FIXME: 2. include snippets/ssl.conf at /etc/nginx/sites-available/default
+# FIXME: 3. configure logging of timings at nginx.conf
+# FIXME: 4. add ${myip} to my-netdata.io SPF record at cloudflare.com
+# FIXME: 5. allow registry backup to this site (rsync from london)
 
 
 EOF
