@@ -240,9 +240,9 @@ postconf -# "smtpd_use_tls"
 postconf -# "smtpd_enforce_tls"
 postconf -e "alias_maps = hash:/etc/aliases"
 
-sed -e "s|^root: .*$|root: costa|g" \
-	-e "s|^sysadmin: .*$|sysadmin: costa|g" \
-	-e '$a\' -e 'costa: costa@tsaousis.gr' -e "/^costa: .*$/d" \
+sed	-e '$a\' -e 'sysadmin: costa'          -e "/^sysadmin: .*$/d" \
+	-e '$a\' -e 'root: costa'              -e "/^root: .*$/d"     \
+	-e '$a\' -e 'costa: costa@tsaousis.gr' -e "/^costa: .*$/d"    \
 	</etc/aliases >files/etc/aliases
 myinstall etc/aliases root:root 644
 newaliases
