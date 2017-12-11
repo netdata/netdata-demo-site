@@ -311,13 +311,13 @@ if [ ! -d /etc/letsencrypt/live/${hostname_fqdn}/ ]
 	then
 
 	do_ssl=1
-	if [ "$(hostname -s).my-netdata.io" = "${hostname_fqdn}" ]
+	if [ "$(hostname -s).my-netdata.io" != "${hostname_fqdn}" ]
 		then
 		echo >&2 "CANNOT INSTALL LETSENCRYPT - WRONG HOSTNAME: $(hostname -s).my-netdata.io is not ${hostname_fqdn}"
 		do_ssl=0
 	fi
 
-	if [ "${myip}" = "${hostname_resolved}" ]
+	if [ "${myip}" != "${hostname_resolved}" ]
 		then
 		echo >&2 "CANNOT INSTALL LETSENCRYPT - ${hostname_fqdn} is resolved to ${hostname_resolved}, instead of ${myip}"
 		do_ssl=0
