@@ -4,9 +4,9 @@ LC_ALL=C
 umask 022
 
 # make sure host is here
-which host >/dev/null || echo >&2 "Install: host" && exit 1
-which ip >/dev/null || echo >&2 "Install: ip" && exit 1
-# which dig >/dev/null || echo >&2 "Install: dnsutils" && exit 1
+which host >/dev/null || { echo >&2 "Install: host" && exit 1; }
+which ip >/dev/null || { echo >&2 "Install: ip" && exit 1; }
+# which dig >/dev/null || { echo >&2 "Install: dnsutils" && exit 1; }
 
 # find the device of the default gateway
 wan="$(ip -4 route get 8.8.8.8 | grep -oP "dev [^[:space:]]+ " | cut -d ' ' -f 2)"
