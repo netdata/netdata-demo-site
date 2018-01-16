@@ -4,7 +4,9 @@ LC_ALL=C
 umask 022
 
 # make sure host is here
-which host >/dev/null || exit 1
+which host >/dev/null || echo >&2 "Install: host" && exit 1
+which ip >/dev/null || echo >&2 "Install: ip" && exit 1
+# which dig >/dev/null || echo >&2 "Install: dnsutils" && exit 1
 
 # find the device of the default gateway
 wan="$(ip -4 route get 8.8.8.8 | grep -oP "dev [^[:space:]]+ " | cut -d ' ' -f 2)"
@@ -33,9 +35,11 @@ EOFHOSTNAME
 	exit 1
 fi
 
-hostname_resolved="$(host ${hostname_fqdn} | grep ' has address ' | sort -u | cut -d ' ' -f 4)"
+hostname_resolved="$(host ${hostname_fqdn} 8.8.8.8 | grep ' has address ' | sort -u | cut -d ' ' -f 4)"
 
 cat <<EOF
+THIS SCRIPT WILL TURN THIS MACHINE TO A NETDATA-DEMO-SITE
+
 HOSTNAME     : ${hostname_fqdn}    (change it with: hostnamectl set-hostname FQDN-HOSTNAME )
 WAN INTERFACE: ${wan}
 WAN IPv4 IP  : ${myip}
