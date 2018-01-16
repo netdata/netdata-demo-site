@@ -3,6 +3,9 @@
 LC_ALL=C
 umask 022
 
+# make sure host is here
+which host >/dev/null || exit 1
+
 # find the device of the default gateway
 wan="$(ip -4 route get 8.8.8.8 | grep -oP "dev [^[:space:]]+ " | cut -d ' ' -f 2)"
 [ -z "${wan}" ] && wan="eth0"
@@ -19,7 +22,14 @@ fi
 hostname_fqdn="$(hostname --fqdn)"
 if [ -z "${hostname_fqdn}" ]
 	then
-	echo >&2 "Please set the hostname of the system by running: hostnamectl set-hostname FQDN-HOSTNAME"
+	cat <<EOFHOSTNAME
+Please set the hostname of the system:
+
+ - edit /etc/hostname to add the FQDN hostname of the system
+ - run: hostname -F /etc/hostname
+ - add the FQDN hostname and the shortname to /etc/hosts
+ - run me again
+EOFHOSTNAME
 	exit 1
 fi
 
@@ -31,6 +41,7 @@ WAN INTERFACE: ${wan}
 WAN IPv4 IP  : ${myip}
 RESOLVED IP  : ${hostname_resolved}
 EOF
+
 read -p "PRESS ENTER TO CONTINUE > "
 
 
