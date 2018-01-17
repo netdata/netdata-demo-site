@@ -28,9 +28,15 @@ if [ -z "${hostname_fqdn}" ]
 Please set the hostname of the system:
 
  - edit /etc/hostname to add the FQDN hostname of the system
+
  - run: hostname -F /etc/hostname
+
  - add the FQDN hostname and the shortname to /etc/hosts
+   like this:
+   127.0.0.1 hostname.domain hostname
+
  - run me again
+
 EOFHOSTNAME
 	exit 1
 fi
@@ -43,7 +49,7 @@ THIS SCRIPT WILL TURN THIS MACHINE TO A NETDATA-DEMO-SITE
 HOSTNAME     : ${hostname_fqdn}    (change it with: hostnamectl set-hostname FQDN-HOSTNAME )
 WAN INTERFACE: ${wan}
 WAN IPv4 IP  : ${myip}
-RESOLVED IP  : ${hostname_resolved}
+RESOLVED IP  : ${hostname_resolved} (will not install letsencrypt if this not valid)
 EOF
 
 read -p "PRESS ENTER TO CONTINUE > "
@@ -137,6 +143,7 @@ myinstall etc/sysctl.d/synproxy.conf root:root 644 || exit 1
 myinstall etc/sysctl.d/net-buffers.conf root:root 644 || exit 1
 myinstall etc/sysctl.d/net-security.conf root:root 644 || exit 1
 myinstall etc/sysctl.d/inotify.conf root:root 644 || exit 1
+myinstall etc/sysctl.d/entropy.conf root:root 644 || exit 1
 sysctl --system
 
 
@@ -341,6 +348,10 @@ if [ ! -d /etc/letsencrypt/live/${hostname_fqdn}/ ]
 	if [ ${do_ssl} -eq 1 ]
 		then
 
+		echo >&2 "Reloading nginx to let it serve letsencrypt ACMA..."
+		nginx -t || { echo >&2 "nginx config is not consistent."; exit 1; }
+		nginx -s reload || { echo >&2 "nginx failed to be reloaded."; exit 1; }
+
 		if [ -d /usr/src/letsencrypt.git ]
 			then
 			cd /usr/src/letsencrypt.git || exit 1
@@ -367,12 +378,16 @@ cat <<EOF
 
 
 
-# FIXME: 1. add hostname at /etc/hosts
-# FIXME: 2. include snippets/ssl.conf at /etc/nginx/sites-available/default
-# FIXME: 3. configure logging of timings at nginx.conf
-# FIXME: 4. add ${myip} to my-netdata.io SPF record at cloudflare.com
-# FIXME: 5. allow registry backup to this site (rsync from london)
-
+# FIXME: add hostname at /etc/hosts
+# FIXME: include snippets/ssl.conf at /etc/nginx/sites-available/default
+# FIXME: configure logging of timings at nginx.conf
+# FIXME: configure web_log plugin of netdata to monitor netdata api methods
+# FIXME: add ${myip} to my-netdata.io SPF record at cloudflare.com
+# FIXME: allow registry backup to this site (rsync from london)
+# FIXME: set netdata history
+# FIXME: add ${hostname_fqdn} to /etc/nginx/conf.d/netdata.conf
+# FIXME: install bind named
+# FIXME: setup swap
 
 EOF
 
