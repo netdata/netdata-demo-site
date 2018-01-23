@@ -11,10 +11,21 @@ if [ "${1}" != "inside-container" ]
     echo "ME  : ${ME}"
     echo "DIR : ${DIR}"
 
+    ret=0
+
     sudo docker run -a stdin -a stdout -a stderr -i -t \
-        -v "${DIR}:/tmp/mapped:rw" alpine:3.5 \
+        -v "${DIR}:/tmp/mapped:rw" alpine:3.7 \
         /bin/sh "/tmp/mapped/${ME}" inside-container
-    exit $?
+    ret=$?
+
+    if [ ${ret} -eq 0 ]
+        then
+        echo "Copying generated binaries to ${DIR}/../sbin.linux/"
+        mv ${DIR}/gvpe ${DIR}/../sbin.linux/
+        mv ${DIR}/gvpectrl ${DIR}/../sbin.linux/
+    fi
+
+    exit ${ret}
 fi
 
 apk update || exit 1
@@ -64,6 +75,9 @@ echo > doc/Makefile.am
 export AUTOMAKE="automake"
 export ACLOCAL="aclocal"
 export LDFLAGS="-static"
+
+# lower 15 seconds to 10 seconds for re-connecting
+#sed -i "s|^  else if (when < -15)$|  else if (when < -10)|g" src/connection.C || echo >& " --- FAILED TO PATCH CONNECTION.C --- "
 
 ./autogen.sh \
     --prefix=/ \

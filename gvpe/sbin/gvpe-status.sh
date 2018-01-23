@@ -17,6 +17,7 @@ EVENTS=0
 NODES_ALL=0
 NODES_UP=0
 NODES_DOWN=0
+NODES_DISABLED=0
 timestamp="NEVER"
 . ./status
 
@@ -33,7 +34,7 @@ GVPE Status on ${MYNODENAME} (Node No ${MYNODEID})
 Total Events: ${EVENTS}
 Last Event: $(date -r ./status "+%Y-%m-%d %H:%M:%S")
 
-Up ${NODES_UP}, Down ${NODES_DOWN}, Total ${NODES_ALL} nodes
+Up ${NODES_UP}, Down $((NODES_DOWN - NODES_DISABLED)), Disabled ${NODES_DISABLED}, Total ${NODES_ALL} nodes
 
 EOF
 

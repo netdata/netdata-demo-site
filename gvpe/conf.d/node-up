@@ -2,28 +2,13 @@
 
 export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
 
-ME="${0}"
+ME="$(basename ${0})"
 
-cat >&2 <<EOF
-SCRIPT   : ${ME}
-CONFBASE : ${CONFBASE}
-IFNAME   : ${IFNAME}
-IFTYPE   : ${IFTYPE}
-IFSUBTYPE: ${IFSUBTYPE}
-IFUPDATA : ${IFUPDATA}
-NODEID   : ${NODEID}
-NODENAME : ${NODENAME}
-MAC      : ${MAC}
-MTU      : ${MTU}
-NODES    : ${NODES}
+# -----------------------------------------------------------------------------
+# show what is happening
 
-DESTNODE : ${DESTNODE}
-DESTID   : ${DESTID}
-DESTSI   : ${DESTSI}
-DESTIP   : ${DESTIP}
-DESTPORT : ${DESTPORT}
-STATE    : ${STATE}
-EOF
+echo >&2 "${ME}: '${STATE}' event for '${DESTNODE}' (${DESTID}) at '${DESTSI}' (ip '${DESTIP}', port '${DESTPORT}'), running on '${NODENAME}' (${NODEID}), interface '${IFNAME}' (type '${IFTYPE}', subtype '${IFSUBTYPE}', mac '${MAC}', mtu '${MTU}', ifupdata '${IFUPDATA}'), config '${CONFBASE}', nodes ${NODES}"
+
 
 [ -f ${CONFBASE}/status/${DESTNODE} ] && \
 	. ${CONFBASE}/status/${DESTNODE}
@@ -80,6 +65,7 @@ EVENTS=$((EVENTS + 1))
 NODES_ALL=${NODES}
 NODES_UP=${NODES_UP}
 NODES_DOWN=${NODES_DOWN}
+NODES_DISABLED=${NODES_DISABLED}
 timestamp="$(date +%s)"
 EOF
 

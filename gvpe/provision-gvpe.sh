@@ -7,6 +7,7 @@ DYNAMIC_NODE_ROUTER_PRIORITY="0"
 
 STATIC_NODE_CONNECT="always"
 DYNAMIC_NODE_CONNECT="ondemand"
+DISABLED_NODE_CONNECT="disabled"
 
 ME="$(realpath ${0})"
 NULL=
@@ -65,7 +66,7 @@ ifname = vpn0
 # probe every 3 seconds until it receives a reply from the other end.
 # If no reply is received within 15 seconds, the peer is considered unreachable
 # and the connection is closed.
-keepalive = 5
+keepalive = 3
 
 # loglevel = noise|trace|debug|info|notice|warn|error|critical
 loglevel = info
@@ -100,13 +101,13 @@ compress = yes
 inherit-tos = yes
 
 # The maximum interval in seconds between retries to establish a connection to this node.
-max-retry = 60
+max-retry = 2
 
 # Expire packets that couldn't be sent after this many seconds.
-max-ttl = 120
+max-ttl = 10
 
 # The maximum number of packets that will be queued.
-max-queue = 1024
+max-queue = 8192
 
 # all hosts can be used as routers.
 router-priority = 1
@@ -168,7 +169,11 @@ node() {
             ;;
 
         none)
-     		ifname="none0"
+            p="none"
+            pip="none"
+            vip="none"
+            sip="none"
+     		ifname="none"
      		;;
 
         *)
@@ -177,9 +182,25 @@ node() {
             ;;
     esac
 
+    if [ -z "${p}" -o "${p}" = "none" -o -z "${vip}" -o "${vip}" = "none" -o "${proto}" = "none" ]
+        then
+        p="none"
+        pip="none"
+        vip="none"
+        sip="none"
+        proto="none"
+        port="0"
+        ifname="none"
+    fi
+
     ifupdata="${VPN_NETWORK}|${vip}"
 
     case "${pip}" in
+        none)
+            connect="${DISABLED_NODE_CONNECT}"
+            router_priority="${DYNAMIC_NODE_ROUTER_PRIORITY}"
+            ;;
+
         dynamic)
             [ -z "${sip}" ] && sip="${vip}"
             connect="${DYNAMIC_NODE_CONNECT}"
@@ -201,13 +222,13 @@ node() {
         exit 1
     fi
 
-    if [ "${pip}" != "dynamic" -a ! -z "${unique_pips[${pip}]}" ]
+    if [ "${pip}" != "none" -a "${pip}" != "dynamic" -a ! -z "${unique_pips[${pip}]}" ]
         then
         echo >&2 "Public IP '${pip}' for ${name} already exists for ${unique_pips[${pip}]}."
         exit 1
     fi
 
-    if [ ! -z "${unique_vips[${vip}]}" ]
+    if [ "${vip}" != "none" -a ! -z "${unique_vips[${vip}]}" ]
         then
         echo >&2 "VPN IP '${vip}' for ${name} already exists for ${unique_vips[${vip}]}."
         exit 1
@@ -252,7 +273,7 @@ node() {
 			any|all)
 				;;
 
-			tcp|udp|rawip|icmp)
+			tcp|udp|rawip|icmp|none)
 				fproto="${fproto} ${x}"
 				;;
 
@@ -274,15 +295,105 @@ foreach_node() {
     done
 }
 
+parallel_callback() {
+    local lock="${1}" parallel_failed=0
+    shift 1
+
+    (
+        flock -n 99 || exit 1
+        # ... commands executed under lock ...
+
+        "${@}" >"${lock}.out" 2>&1 || parallel_failed=1
+        
+        echo >&99 "${parallel_failed}"
+    ) 99>"${lock}"
+}
+
+foreach_node_parallel() {
+    local callback="${1}" name
+    local locked=0 failed l hosts=
+
+    local confd="$(run mktemp -d /tmp/gvpe-parallel-runner-XXXXXXXXXX)"
+
+    for name in "${gvpe_name_by_id[@]}"
+    do
+        locked=$((locked + 1))
+        hosts="${hosts} ${name}"
+        # echo >&2 "Calling ${callback} for ${name} (${gvpe_id[${name}]})"
+        parallel_callback "${confd}/${name}" ${callback} "${name}" &
+    done
+
+    while [ $locked -gt 0 ]
+    do
+        echo >&2 "waiting for ${locked} hosts to finish (${hosts} )..."
+        sleep 2
+
+        locked=0
+        hosts=
+        for name in "${gvpe_name_by_id[@]}"
+        do
+            l=0
+            flock --nonblock "${confd}/${name}" -c "echo >/dev/null" || l=1
+            [ ${l} -eq 1 ] && hosts="${hosts} ${name}" && locked=$((locked + 1))
+        done
+    done
+
+    failed=0
+    hosts=
+    for name in "${gvpe_name_by_id[@]}"
+    do
+        {
+            echo
+            echo
+            echo " --- BEGIN OUTPUT of ${callback} ${name} on $(date) --- "
+            cat "${confd}/${name}.out"
+            echo " --- END OUTPUT of ${callback} ${name} --- "
+            echo
+            echo
+        } >>gvpe.log
+
+
+        l="$(cat "${confd}/${name}")"
+        if [ "${l}" != "0" ]
+            then
+            echo >&2
+            echo >&2
+            echo >&2
+            echo >&2 "HOST ${name} FAILED !!!"
+            echo >&2
+            echo >&2 " --- BEGIN OUTPUT of ${callback} ${name} --- "
+            cat "${confd}/${name}.out"
+            echo >&2 " --- END OUTPUT of ${callback} ${name} --- "
+            failed=$(( failed + 1 ))
+        fi
+    done
+
+    run rm -rf "${confd}"
+
+    if [ ${failed} -gt 0 ]
+        then
+        echo >&2
+        echo >&2 "${failed} jobs failed ( ${hosts} )"
+        return 1
+    else
+        echo >&2 "all jobs report success"
+        return 0
+    fi
+}
+
 node_status_file() {
-    local name="${1}"
+    local name="${1}" status="disabled"
 
-    echo "${name}" >>conf.d/status/nodes
+    if [ "${gvpe_os[${name}]}" != "none" ]
+        then
+        echo "${name}" >>conf.d/status/nodes
+        status="down"
+    fi
 
-    cat >conf.d/status/${name} <<EOF
+    cat >conf.d/status/${name}.reset <<EOF
 nodeid="${gvpe_id[${name}]}"
 name="${name}"
-status="down"
+status="${status}"
 ip="${gvpe_vip[${name}]}"
 si=""
 pip="${gvpe_pip[${name}]}"
@@ -290,15 +401,21 @@ pipport="${gvpe_port[${name}]}"
 rip="${gvpe_pip[${name}]}"
 ripport="${gvpe_port[${name}]}"
 mac=""
+os="${gvpe_os[${name}]}"
 ifupdata="${gvpe_ifupdata[${name}]}"
 timestamp="$(date +%s)"
 EOF
 }
 
 node_gvpe_conf() {
-    local name="${1}" hostname_comment
+    local name="${1}" hostname_comment= disabled_comment=
 
     case "${gvpe_pip[${name}]}" in
+        none)
+            hostname_comment="# "
+            disabled_comment="# "
+            ;;
+            
         dynamic)
             hostname_comment="# "
             ;;
@@ -323,6 +440,7 @@ node_gvpe_conf() {
 				tcp) tcp="yes";;
 				icmp) icmp="yes";;
 				rawip) rawip="yes";;
+                none) ;;
 				*) echo >&2 "Invalid protocol: ${x}";;
 			esac
 		done
@@ -334,13 +452,13 @@ node_gvpe_conf() {
 node = ${name}
 
 ${hostname_comment}hostname = ${gvpe_pip[${name}]}
-on ${name} hostname = 0.0.0.0
-on ${name} ifname = ${gvpe_ifname[${name}]}
-udp-port = ${gvpe_port[${name}]}
-tcp-port = ${gvpe_port[${name}]}
+${disabled_comment}on ${name} hostname = 0.0.0.0
+${disabled_comment}on ${name} ifname = ${gvpe_ifname[${name}]}
+${disabled_comment}udp-port = ${gvpe_port[${name}]}
+${disabled_comment}tcp-port = ${gvpe_port[${name}]}
 connect = ${gvpe_connect[${name}]} # ondemand | never | always | disabled
-router-priority = ${gvpe_router_priority[${name}]}
-on ${name} if-up-data = ${gvpe_ifupdata[${name}]}
+${disabled_comment}router-priority = ${gvpe_router_priority[${name}]}
+${disabled_comment}on ${name} if-up-data = ${gvpe_ifupdata[${name}]}
 # allow-direct = *
 # deny-direct = *
 # on ${name} low-power = yes # on laptops
@@ -360,28 +478,31 @@ EOF
 node_keys() {
     local name="${1}"
 
-    if [ ! -f "keys/${name}" -o ! -f "keys/${name}.privkey" ]
+    if [ ! -f "keys/${name}" -o ! -f "keys/${name}.privkey" -o "${gvpe_os[${name}]}" = "none" ]
     then
+        [ -f "keys/${name}" ] && rm "keys/${name}"
+        [ -f "keys/${name}.privkey" ] && rm "keys/${name}.privkey"
+
         echo >&2 "generating keys for: ${name}"
         cd keys
         run ../sbin.linux/gvpectrl -c ../conf.d -g ${name}
         cd ..
     fi
 
-    if [ ! -f "conf.d/pubkey/${name}" ]
-    then
-        run cp -p keys/${name} conf.d/pubkey/${name}
-    fi
+    run cp -p keys/${name} conf.d/pubkey/${name}
 }
 
 node_hosts() {
     local name="${1}"
 
-    if [ "${gvpe_pip[${name}]}" != "dynamic" ]
+    if [ "${gvpe_pip[${name}]}" != "none" -a "${gvpe_pip[${name}]}" != "dynamic" ]
         then
         printf "%-15s %s\n" "${gvpe_pip[${name}]}" "${name}" >>conf.d/hosts.real
     fi
-    printf "%-15s %s\n" "${gvpe_vip[${name}]}" "${name}" >>conf.d/hosts.vpn
+    if [ "${gvpe_vip[${name}]}" != "none" ]
+        then
+        printf "%-15s %s\n" "${gvpe_vip[${name}]}" "${name}" >>conf.d/hosts.vpn
+    fi
 }
 
 node_provision_files() {
@@ -413,6 +534,9 @@ node_provision_files() {
             run rsync -HaSPv sbin.${gvpe_os[${name}]}/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/usr/local/sbin/
             run rsync -HaSPv ${confd}/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/etc/gvpe/
         fi
+    else
+        echo >&2
+        echo >&2 "node ${name} is disabled."
     fi
 
     run rm -rf "${confd}"
@@ -427,15 +551,17 @@ node_setup() {
         echo >&2
         echo >&2 "Setting up GVPE on: ${name} (${gvpe_sip[${name}]})"
         
-        failed=0
         if [ "${gvpe_sip[${name}]}" = "localhost" ]
             then
             # it will sudo by itself if needed
-            run /etc/gvpe/setup.sh /etc/gvpe || failed=1
+            run /etc/gvpe/setup.sh /etc/gvpe
         else
             # it will sudo by itself if needed
-            run ssh "${gvpe_sip[${name}]}" "/etc/gvpe/setup.sh /etc/gvpe" || failed=1
+            run ssh "${gvpe_sip[${name}]}" "/etc/gvpe/setup.sh /etc/gvpe"
         fi
+    else
+        echo >&2
+        echo >&2 "node ${name} is disabled."
     fi
 }
 
@@ -493,13 +619,31 @@ EOF
 }
 
 provision() {
+    echo >&2
+    echo >&2
+    echo >&2 " --- PROVISIONING ALL NODES ---"
+    echo >&2
+
     # provision files
-    foreach_node node_provision_files
+    foreach_node_parallel node_provision_files
+
+    echo >&2
+    echo >&2 " --- PROVISIONED ALL NODES ---"
+    echo >&2
 }
 
 activate() {
+    echo >&2
+    echo >&2
+    echo >&2 " --- ACTIVATING ALL NODES ---"
+    echo >&2
+
     # setup nodes
-    foreach_node node_setup
+    foreach_node_parallel node_setup
+
+    echo >&2
+    echo >&2 " --- ACTIVATED ALL NODES ---"
+    echo >&2
 }
 
 save_routing_order() {

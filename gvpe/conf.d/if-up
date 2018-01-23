@@ -4,7 +4,17 @@ export PATH="${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbi
 
 set -e
 
-ME="${0}"
+ME="$(basename ${0})"
+
+
+# -----------------------------------------------------------------------------
+# show what is happening
+
+echo >&2 "${ME} on '${NODENAME}' (${NODEID}), interface '${IFNAME}' (type '${IFTYPE}', subtype '${IFSUBTYPE}', mac '${MAC}', mtu '${MTU}', ifupdata '${IFUPDATA}'), config '${CONFBASE}', nodes ${NODES}"
+
+
+# -----------------------------------------------------------------------------
+# functions
 
 run() {
     printf >&2 " > "
@@ -13,23 +23,6 @@ run() {
     "${@}"
     return $?
 }
-
-# -----------------------------------------------------------------------------
-# show what is happening
-
-cat >&2 <<EOF
-SCRIPT   : ${ME}
-CONFBASE : ${CONFBASE}
-IFNAME   : ${IFNAME}
-IFTYPE   : ${IFTYPE}
-IFSUBTYPE: ${IFSUBTYPE}
-IFUPDATA : ${IFUPDATA}
-NODEID   : ${NODEID}
-NODENAME : ${NODENAME}
-MAC      : ${MAC}
-MTU      : ${MTU}
-NODES    : ${NODES}
-EOF
 
 # -----------------------------------------------------------------------------
 # parse the IP and NET from ${IFUPDATA}
@@ -64,12 +57,15 @@ esac
 # we just connected, mark all nodes down
 
 cd ${CONFBASE}/status
+active_nodes=0
 while read x
 do
+	active_nodes=$((active_nodes + 1))
+
 	[ "${x}" = "${MYNODENAME}" ] && continue
 	[ ! -f "${x}" ] && echo >&2 "File '${x}' missing!" && continue
 
-	source ${x}
+	source "${x}.reset"
 	#eval "mac=\${MAC_${nodeid}-${mac}}; ifupdata=\${IFUPDATA_${nodeid}-${ifupdata}}"
 	eval "mac=\${MAC_${nodeid}-${mac}}"
 	cat >${x} <<EOF
@@ -118,15 +114,16 @@ EVENTS=$((EVENTS + 1))
 NODES_ALL=${NODES}
 NODES_UP=${NODES_UP}
 NODES_DOWN=${NODES_DOWN}
+NODES_DISABLED=$((NODES - active_nodes))
 timestamp="$(date +%s)"
 EOF
 
 # -----------------------------------------------------------------------------
 # execute any local action
 
-if [ -x ${ME}.local ]
+if [ -x ${CONFBASE}/${ME}.local ]
 	then
-	run ${ME}.local "${@}"
+	run ${CONFBASE}/${ME}.local "${@}"
 	exit $?
 fi
 

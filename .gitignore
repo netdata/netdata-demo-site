@@ -11,3 +11,4 @@ gvpe/keys/
 gvpe/ids/
 gvpe/systemd/
 gvpe/*.tar.gz
+gvpe/*.log
