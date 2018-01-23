@@ -2,6 +2,9 @@
 
 set -e
 
+RANDOMIZE_KEYS_OF_DISABLED_HOSTS=0
+REGENARATE_ALL_KEYS=0
+
 STATIC_NODE_ROUTER_PRIORITY="1"
 DYNAMIC_NODE_ROUTER_PRIORITY="0"
 
@@ -311,7 +314,7 @@ parallel_callback() {
 
 foreach_node_parallel() {
     local callback="${1}" name
-    local locked=0 failed l hosts=
+    local locked=0 failed l hosts= failed_hosts=
 
     local confd="$(run mktemp -d /tmp/gvpe-parallel-runner-XXXXXXXXXX)"
 
@@ -356,6 +359,7 @@ foreach_node_parallel() {
         l="$(cat "${confd}/${name}")"
         if [ "${l}" != "0" ]
             then
+            failed_hosts="${failed_hosts} ${name}"
             echo >&2
             echo >&2
             echo >&2
@@ -373,7 +377,7 @@ foreach_node_parallel() {
     if [ ${failed} -gt 0 ]
         then
         echo >&2
-        echo >&2 "${failed} jobs failed ( ${hosts} )"
+        echo >&2 "${failed} jobs failed ( ${failed_hosts} )"
         return 1
     else
         echo >&2 "all jobs report success"
@@ -478,7 +482,7 @@ EOF
 node_keys() {
     local name="${1}"
 
-    if [ ! -f "keys/${name}" -o ! -f "keys/${name}.privkey" -o "${gvpe_os[${name}]}" = "none" ]
+    if [ ! -f "keys/${name}" -o ! -f "keys/${name}.privkey" -o \( "${gvpe_os[${name}]}" = "none" -a "${RANDOMIZE_KEYS_OF_DISABLED_HOSTS}" -eq 1 \) -o "${REGENARATE_ALL_KEYS}" -eq 1 ]
     then
         [ -f "keys/${name}" ] && rm "keys/${name}"
         [ -f "keys/${name}.privkey" ] && rm "keys/${name}.privkey"
@@ -535,7 +539,6 @@ node_provision_files() {
             run rsync -HaSPv ${confd}/ -e "ssh" --rsync-path="\`which sudo\` rsync" ${gvpe_sip[${name}]}:/etc/gvpe/
         fi
     else
-        echo >&2
         echo >&2 "node ${name} is disabled."
     fi
 
@@ -560,7 +563,6 @@ node_setup() {
             run ssh "${gvpe_sip[${name}]}" "/etc/gvpe/setup.sh /etc/gvpe"
         fi
     else
-        echo >&2
         echo >&2 "node ${name} is disabled."
     fi
 }
@@ -576,14 +578,21 @@ node_routing_order() {
         if [ "${gvpe_sip[${name}]}" = "localhost" ]
             then
             # it will sudo by itself if needed
-            run sudo /usr/local/sbin/gvpe-routing-order.sh || failed=1
+            run sudo /usr/local/sbin/gvpe-routing-order.sh
         else
-            run ssh "${gvpe_sip[${name}]}" "\`which sudo\` /usr/local/sbin/gvpe-routing-order.sh" || failed=1
+            run ssh "${gvpe_sip[${name}]}" "\`which sudo\` /usr/local/sbin/gvpe-routing-order.sh"
         fi
+    else
+        echo >&2 "node ${name} is disabled."
     fi
 }
 
 configure() {
+    echo >&2
+    echo >&2
+    echo >&2 " --- CONFIGURING ALL NODES ---"
+    echo >&2
+
     local c=0
     while [ ${c} -lt ${max_id} ]
     do
@@ -616,6 +625,11 @@ EOF
 
     echo "# END gvpe real" >>conf.d/hosts.real
     echo "# END gvpe vpn"  >>conf.d/hosts.vpn
+
+
+    echo >&2
+    echo >&2 " --- CONFIGURED ALL NODES ---"
+    echo >&2
 }
 
 provision() {
@@ -647,8 +661,17 @@ activate() {
 }
 
 save_routing_order() {
+    echo >&2
+    echo >&2
+    echo >&2 " --- EVALUATING ROUTING ORDER ON ALL NODES ---"
+    echo >&2
+
     # setup nodes
-    foreach_node node_routing_order
+    foreach_node_parallel node_routing_order
+
+    echo >&2
+    echo >&2 " --- EVALUATED ROUTING ORDER ON ALL NODES ---"
+    echo >&2
 }
 
 source nodes.conf
