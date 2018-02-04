@@ -595,6 +595,10 @@ declare -A pkg_gdb=(
 	['default']="gdb"
 	)
 
+declare -A pkg_iostat=(
+	['default']="iostat"
+	)
+
 declare -A pkg_iproute2=(
 	 ['alpine']="iproute2"
 	 ['debian']="iproute2"
@@ -669,8 +673,16 @@ declare -A pkg_lm_sensors=(
 	['default']="lm_sensors"
 	)
 
+declare -A pkg_logwatch=(
+	['default']="logwatch"
+	)
+
 declare -A pkg_lxc=(
 	['default']="lxc"
+	)
+
+declare -A pkg_mailutils=(
+	['default']="mailutils"
 	)
 
 declare -A pkg_make=(
@@ -1101,6 +1113,9 @@ packages() {
 		require_cmd nginx      || suitable_package nginx
 		require_cmd postconf   || suitable_package postfix
 		require_cmd lxc-create || suitable_package lxc
+		require_cmd logwatch   || suitable_package logwatch
+		require_cmd mail       || suitable_package mailutils
+		require_cmd iostat     || suitable_package iostat
 	fi
 }
 
