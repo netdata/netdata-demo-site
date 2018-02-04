@@ -595,8 +595,8 @@ declare -A pkg_gdb=(
 	['default']="gdb"
 	)
 
-declare -A pkg_sysstat=(
-	['default']="sysstat"
+declare -A pkg_iotop=(
+	['default']="iotop"
 	)
 
 declare -A pkg_iproute2=(
@@ -820,8 +820,8 @@ declare -A pkg_python_requests=(
 	   ['suse']="python-requests"
 	['default']="python-requests"
 
-['alpine-3.1.4']="WARNING|"
-['alpine-3.2.3']="WARNING|"
+   ['alpine-3.1.4']="WARNING|"
+   ['alpine-3.2.3']="WARNING|"
 	)
 
 declare -A pkg_python3_requests=(
@@ -894,6 +894,10 @@ declare -A pkg_screen=(
 
 declare -A pkg_sudo=(
 	['default']="sudo"
+	)
+
+declare -A pkg_sysstat=(
+	['default']="sysstat"
 	)
 
 declare -A pkg_tcpdump=(
@@ -1116,6 +1120,7 @@ packages() {
 		require_cmd logwatch   || suitable_package logwatch
 		require_cmd mail       || suitable_package mailutils
 		require_cmd iostat     || suitable_package sysstat
+		require_cmd iotop      || suitable_package iotop
 	fi
 }
 
