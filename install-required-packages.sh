@@ -595,8 +595,8 @@ declare -A pkg_gdb=(
 	['default']="gdb"
 	)
 
-declare -A pkg_iostat=(
-	['default']="iostat"
+declare -A pkg_sysstat=(
+	['default']="sysstat"
 	)
 
 declare -A pkg_iproute2=(
@@ -1115,7 +1115,7 @@ packages() {
 		require_cmd lxc-create || suitable_package lxc
 		require_cmd logwatch   || suitable_package logwatch
 		require_cmd mail       || suitable_package mailutils
-		require_cmd iostat     || suitable_package iostat
+		require_cmd iostat     || suitable_package sysstat
 	fi
 }
 
