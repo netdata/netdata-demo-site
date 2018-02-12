@@ -249,6 +249,18 @@ myadduser costa "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCvh2gm+bcosazdtW7kd82in5/
 # -----------------------------------------------------------------------------
 # CONFIGURE POSTFIX
 
+cat </etc/aliases |\
+	sed -e '$a\' -e 'sysadmin: root'           -e "/^sysadmin:.*$/d" |\
+	sed -e '$a\' -e 'netdata: root'            -e "/^netdata:.*$/d" |\
+	sed -e '$a\' -e 'root: costa@tsaousis.gr'  -e "/^root:.*$/d"     |\
+	sed -e '$a\' -e 'costa: costa@tsaousis.gr' -e "/^costa:.*$/d"    |\
+	cat >files/etc/aliases
+myinstall etc/aliases root:root 644
+newaliases
+
+myinstall etc/postfix/generic root:root 644
+myinstall etc/postfix/recipient_canonical.pcre root:root 644
+
 postconf -e "myhostname = $(hostname -s).my-netdata.io"
 postconf -e "mydomain = my-netdata.io"
 postconf -e "myorigin = my-netdata.io"
@@ -261,14 +273,8 @@ postconf -e "smtpd_tls_security_level=may"
 postconf -# "smtpd_use_tls"
 postconf -# "smtpd_enforce_tls"
 postconf -e "alias_maps = hash:/etc/aliases"
-
-cat </etc/aliases |\
-	sed -e '$a\' -e 'sysadmin: costa'          -e "/^sysadmin:.*$/d" |\
-	sed -e '$a\' -e 'root: costa'              -e "/^root:.*$/d"     |\
-	sed -e '$a\' -e 'costa: costa@tsaousis.gr' -e "/^costa:.*$/d"    |\
-	cat >files/etc/aliases
-myinstall etc/aliases root:root 644
-newaliases
+postconf -e "smtp_generic_maps = hash:/etc/postfix/generic"
+postconf -e "recipient_canonical_maps = regexp:/etc/postfix/recipient_canonical.pcre"
 
 
 # -----------------------------------------------------------------------------
