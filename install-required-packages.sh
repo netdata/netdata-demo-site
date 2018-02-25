@@ -809,6 +809,43 @@ declare -A pkg_python3_psycopg2=(
 	['default']="WARNING|"
 	)
 
+declare -A pkg_python_pip=(
+	 ['alpine']="py-pip"
+	 ['gentoo']="dev-python/pip"
+	['sabayon']="dev-python/pip"
+	['default']="python-pip"
+	)
+
+declare -A pkg_python3_pip=(
+	 ['alpine']="py3-pip"
+	   ['arch']="python-pip"
+	 ['centos']="WARNING|"
+	 ['gentoo']="dev-python/pip"
+	['sabayon']="dev-python/pip"
+	   ['rhel']="WARNING|"
+	['default']="python3-pip"
+	)
+
+declare -A pkg_python_pymongo=(
+	 ['alpine']="WARNING|"
+	   ['arch']="python2-pymongo"
+	 ['centos']="WARNING|"
+	 ['debian']="python-pymongo"
+	 ['gentoo']="dev-python/pymongo"
+	   ['suse']="python-pymongo"
+	['default']="python-pymongo"
+	)
+
+declare -A pkg_python3_pymongo=(
+	 ['alpine']="WARNING|"
+	   ['arch']="python-pymongo"
+	 ['centos']="WARNING|"
+	 ['debian']="python3-pymongo"
+	 ['gentoo']="dev-python/pymongo"
+	   ['suse']="python3-pymongo"
+	['default']="python3-pymongo"
+	)
+
 declare -A pkg_python_requests=(
 	 ['alpine']="py-requests"
 	   ['arch']="python2-requests"
@@ -834,23 +871,6 @@ declare -A pkg_python3_requests=(
 	   ['rhel']="WARNING|"
 	   ['suse']="WARNING|"
 	['default']="WARNING|"
-	)
-
-declare -A pkg_python_pip=(
-	 ['alpine']="py-pip"
-	 ['gentoo']="dev-python/pip"
-	['sabayon']="dev-python/pip"
-	['default']="python-pip"
-	)
-
-declare -A pkg_python3_pip=(
-	 ['alpine']="py3-pip"
-	   ['arch']="python-pip"
-	 ['centos']="WARNING|"
-	 ['gentoo']="dev-python/pip"
-	['sabayon']="dev-python/pip"
-	   ['rhel']="WARNING|"
-	['default']="python3-pip"
 	)
 
 declare -A pkg_python_yaml=(
@@ -1085,6 +1105,7 @@ packages() {
 		require_cmd python || suitable_package python
 
 		suitable_package python-yaml
+		suitable_package python-pymongo
 		# suitable_package python-requests
 		# suitable_package python-pip
 
@@ -1100,6 +1121,7 @@ packages() {
 		require_cmd python3 || suitable_package python3
 
 		suitable_package python3-yaml
+		suitable_package python3-pymongo
 		# suitable_package python3-requests
 		# suitable_package python3-pip
 
