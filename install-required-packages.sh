@@ -753,7 +753,7 @@ declare -A pkg_python_mysqldb=(
 	 ['gentoo']="dev-python/mysqlclient"
 	['sabayon']="dev-python/mysqlclient"
 	   ['rhel']="MySQL-python"
-	   ['suse']="python-MySQL-python"
+	   ['suse']="python-PyMySQL"
 	['default']="python-mysql"
 
 	# exceptions
