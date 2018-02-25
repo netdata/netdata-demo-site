@@ -5,7 +5,7 @@ do
 	case "${x}" in
 		arch*)
 			echo "${x}: pacman -Syu"
-			lxc-attach -n "${x}" -- pacman -Syu
+			lxc-attach -n "${x}" -- pacman --noconfirm -Syu
 			;;
 
 		alpine*)
@@ -16,14 +16,14 @@ do
 
 		centos*|fedora*)
 			echo "${x}: yum -y update"
-			lxc-attach -n "${x}" -- yum update
-			lxc-attach -n "${x}" -- yum update
+			lxc-attach -n "${x}" -- yum -y update
+			lxc-attach -n "${x}" -- yum -y upgrade
 			;;
 
 		debian*|ubuntu*)
 			echo "${x}: apt-get update && apt-get -yq dist-upgrade"
-			lxc-attach -n "${x}" -- apt-get update
-			lxc-attach -n "${x}" -- apt-get dist-upgrade
+			lxc-attach -n "${x}" -- apt-get -y update
+			lxc-attach -n "${x}" -- apt-get -y dist-upgrade
 			;;
 
 		gentoo*)
