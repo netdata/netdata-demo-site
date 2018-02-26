@@ -13,9 +13,14 @@ do
 			lxc-attach -n "${x}" -- /bin/sh -c 'apk update && apk upgrade'
 			;;
 
-		centos*|fedora*)
+		centos*)
 			echo "${x}: yum -y update"
 			lxc-attach -n "${x}" -- /bin/sh -c 'yum -y update && yum -y upgrade'
+			;;
+
+		fedora*)
+			echo "${x}: dnf -y distro-sync --refresh"
+			lxc-attach -n "${x}" -- /bin/sh -c 'dnf -y distro-sync --refresh'
 			;;
 
 		debian*|ubuntu*)
