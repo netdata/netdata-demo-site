@@ -2,6 +2,7 @@
 
 for x in $(ls /var/lib/lxc)
 do
+	echo
 	case "${x}" in
 		arch*)
 			echo "${x}: pacman -Syu"
@@ -13,7 +14,7 @@ do
 			lxc-attach -n "${x}" -- /bin/sh -c 'apk update && apk upgrade'
 			;;
 
-		centos*)
+		centos*|oracle*)
 			echo "${x}: yum -y update"
 			lxc-attach -n "${x}" -- /bin/sh -c 'yum -y update && yum -y upgrade'
 			;;
@@ -33,13 +34,18 @@ do
 			lxc-attach -n "${x}" -- /bin/sh -c 'emerge --sync && emerge -uDNv world'
 			;;
 
+		plamo*|slackware*)
+			echo "${x}: slackpkg update gpg && slackpkg update && slackpkg upgrade-all"
+			lxc-attach -n "${x}" -- /bin/sh -c 'slackpkg update gpg && slackpkg update && slackpkg upgrade-all'
+			;;
+
 		*suse*)
 			echo "${x}: zypper refresh && zypper update"
 			lxc-attach -n "${x}" -- /bin/sh -c 'zypper --non-interactive refresh && zypper --non-interactive update'
 			;;
 
 		*)
-			echo "${x}: unknown"
+			echo "${x}: unknown system"
 			;;
 	esac
 done
