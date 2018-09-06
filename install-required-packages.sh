@@ -548,6 +548,7 @@ declare -A pkg_autoconf_archive=(
        ['centos-7']="WARNING|"
          ['rhel-6']="WARNING|"
          ['rhel-7']="WARNING|"
+      ['ubuntu-18']="WARNING|"
 	)
 
 declare -A pkg_autogen=(
@@ -558,6 +559,7 @@ declare -A pkg_autogen=(
 	# exceptions
        ['centos-6']="WARNING|"
          ['rhel-6']="WARNING|"
+      ['ubuntu-18']="WARNING|"
 	)
 
 declare -A pkg_automake=(
