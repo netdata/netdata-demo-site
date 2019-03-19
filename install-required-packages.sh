@@ -97,10 +97,8 @@ Supported packages (you can append many of them):
                      (required for monitoring named and SNMP)
 
     - python         install python
-                     (including python-yaml, for config files parsing)
 
     - python3        install python3
-                     (including python3-yaml, for config files parsing)
 
     - python-mysql   install MySQLdb
                      (for monitoring mysql, will install python3 version
@@ -878,30 +876,6 @@ declare -A pkg_python3_requests=(
 	['default']="WARNING|"
 	)
 
-declare -A pkg_python_yaml=(
-	 ['alpine']="py-yaml"
-	   ['arch']="python2-yaml"
-	 ['gentoo']="dev-python/pyyaml"
-	['sabayon']="dev-python/pyyaml"
-	 ['centos']="PyYAML"
-	   ['rhel']="PyYAML"
-	   ['suse']="python-PyYAML"
-	['default']="python-yaml"
-	)
-
-declare -A pkg_python3_yaml=(
-	 ['alpine']="py3-yaml"
-	   ['arch']="python-yaml"
-	 ['centos']="python3-PyYAML"
-	 ['centos']="WARNING|"
-	 ['debian']="python3-yaml"
-	 ['gentoo']="dev-python/pyyaml"
-	['sabayon']="dev-python/pyyaml"
-	   ['rhel']="WARNING|"
-	   ['suse']="python3-PyYAML"
-	['default']="python3-yaml"
-	)
-
 declare -A pkg_python3=(
 	 ['gentoo']="dev-lang/python"
 	['sabayon']="dev-lang/python:3.4"
@@ -1109,7 +1083,6 @@ packages() {
 		then
 		require_cmd python || suitable_package python
 
-		suitable_package python-yaml
 		[ ${PACKAGES_NETDATA_PYTHON_MONGO} -ne 0 ] && suitable_package python-pymongo
 		# suitable_package python-requests
 		# suitable_package python-pip
@@ -1125,7 +1098,6 @@ packages() {
 		then
 		require_cmd python3 || suitable_package python3
 
-		suitable_package python3-yaml
 		suitable_package python3-pymongo
 		[ ${PACKAGES_NETDATA_PYTHON_MONGO} -ne 0 ] && suitable_package python3-pymongo
 		# suitable_package python3-requests
@@ -1505,11 +1477,11 @@ do
 			PACKAGES_NETDATA_PYTHON=1
 			;;
 
-		python|python-yaml|yaml-python|pyyaml|netdata-python)
+		python|netdata-python)
 			PACKAGES_NETDATA_PYTHON=1
 			;;
 
-		python3|python3-yaml|yaml-python3|netdata-python3)
+		python3|netdata-python3)
 			PACKAGES_NETDATA_PYTHON3=1
 			;;
 
