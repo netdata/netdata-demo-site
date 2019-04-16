@@ -1234,6 +1234,7 @@ install_dnf() {
 	# --setopt=strict=0 allows dnf to proceed
 	# installing whatever is available
 	# even if a package is not found
+	opts="$opts --setopt=strict=0"
 	run ${sudo} dnf ${opts} install "${@}"
 }
 
