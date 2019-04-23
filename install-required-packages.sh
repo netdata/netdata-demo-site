@@ -22,6 +22,7 @@ PACKAGES_NETDATA_PYTHON=${PACKAGES_NETDATA_PYTHON-0}
 PACKAGES_NETDATA_PYTHON3=${PACKAGES_NETDATA_PYTHON3-0}
 PACKAGES_NETDATA_PYTHON_MYSQL=${PACKAGES_NETDATA_PYTHON_MYSQL-0}
 PACKAGES_NETDATA_PYTHON_POSTGRES=${PACKAGES_NETDATA_PYTHON_POSTGRES-0}
+PACKAGES_NETDATA_PYTHON_MONGO=${PACKAGES_NETDATA_PYTHON_MONGO-0}
 PACKAGES_DEBUG=${PACKAGES_DEBUG-0}
 PACKAGES_IPRANGE=${PACKAGES_IPRANGE-0}
 PACKAGES_FIREHOL=${PACKAGES_FIREHOL-0}
@@ -96,10 +97,8 @@ Supported packages (you can append many of them):
                      (required for monitoring named and SNMP)
 
     - python         install python
-                     (including python-yaml, for config files parsing)
 
     - python3        install python3
-                     (including python3-yaml, for config files parsing)
 
     - python-mysql   install MySQLdb
                      (for monitoring mysql, will install python3 version
@@ -108,6 +107,8 @@ Supported packages (you can append many of them):
     - python-postgres install psycopg2
                      (for monitoring postgres, will install python3 version
                      if python3 is enabled or detected)
+
+    - python-pymongo install python-pymongo (or python3-pymongo for python3)
 
     - sensors        install lm_sensors for monitoring h/w sensors
 
@@ -875,30 +876,6 @@ declare -A pkg_python3_requests=(
 	['default']="WARNING|"
 	)
 
-declare -A pkg_python_yaml=(
-	 ['alpine']="py-yaml"
-	   ['arch']="python2-yaml"
-	 ['gentoo']="dev-python/pyyaml"
-	['sabayon']="dev-python/pyyaml"
-	 ['centos']="PyYAML"
-	   ['rhel']="PyYAML"
-	   ['suse']="python-PyYAML"
-	['default']="python-yaml"
-	)
-
-declare -A pkg_python3_yaml=(
-	 ['alpine']="py3-yaml"
-	   ['arch']="python-yaml"
-	 ['centos']="python3-PyYAML"
-	 ['centos']="WARNING|"
-	 ['debian']="python3-yaml"
-	 ['gentoo']="dev-python/pyyaml"
-	['sabayon']="dev-python/pyyaml"
-	   ['rhel']="WARNING|"
-	   ['suse']="python3-PyYAML"
-	['default']="python3-yaml"
-	)
-
 declare -A pkg_python3=(
 	 ['gentoo']="dev-lang/python"
 	['sabayon']="dev-lang/python:3.4"
@@ -1106,8 +1083,7 @@ packages() {
 		then
 		require_cmd python || suitable_package python
 
-		suitable_package python-yaml
-		suitable_package python-pymongo
+		[ ${PACKAGES_NETDATA_PYTHON_MONGO} -ne 0 ] && suitable_package python-pymongo
 		# suitable_package python-requests
 		# suitable_package python-pip
 
@@ -1122,8 +1098,8 @@ packages() {
 		then
 		require_cmd python3 || suitable_package python3
 
-		suitable_package python3-yaml
 		suitable_package python3-pymongo
+		[ ${PACKAGES_NETDATA_PYTHON_MONGO} -ne 0 ] && suitable_package python3-pymongo
 		# suitable_package python3-requests
 		# suitable_package python3-pip
 
@@ -1258,6 +1234,7 @@ install_dnf() {
 	# --setopt=strict=0 allows dnf to proceed
 	# installing whatever is available
 	# even if a package is not found
+	opts="$opts --setopt=strict=0"
 	run ${sudo} dnf ${opts} install "${@}"
 }
 
@@ -1438,7 +1415,7 @@ EOF
 remote_log() {
 	# log success or failure on our system
 	# to help us solve installation issues
-	curl >/dev/null 2>&1 -Ss --max-time 3 "https://registry.my-netdata.io/log/installer?status=${1}&error=${2}&distribution=${distribution}&version=${version}&installer=${package_installer}&tree=${tree}&detection=${detection}&netdata=${PACKAGES_NETDATA}&nodejs=${PACKAGES_NETDATA_NODEJS}&python=${PACKAGES_NETDATA_PYTHON}&python3=${PACKAGES_NETDATA_PYTHON3}&mysql=${PACKAGES_NETDATA_PYTHON_MYSQL}&postgres=${PACKAGES_NETDATA_PYTHON_POSTGRES}&sensors=${PACKAGES_NETDATA_SENSORS}&firehol=${PACKAGES_FIREHOL}&fireqos=${PACKAGES_FIREQOS}&iprange=${PACKAGES_IPRANGE}&update_ipsets=${PACKAGES_UPDATE_IPSETS}&demo=${PACKAGES_NETDATA_DEMO_SITE}"
+	curl >/dev/null 2>&1 -Ss --max-time 3 "https://registry.my-netdata.io/log/installer?status=${1}&error=${2}&distribution=${distribution}&version=${version}&installer=${package_installer}&tree=${tree}&detection=${detection}&netdata=${PACKAGES_NETDATA}&nodejs=${PACKAGES_NETDATA_NODEJS}&python=${PACKAGES_NETDATA_PYTHON}&python3=${PACKAGES_NETDATA_PYTHON3}&mysql=${PACKAGES_NETDATA_PYTHON_MYSQL}&postgres=${PACKAGES_NETDATA_PYTHON_POSTGRES}&pymongo=${PACKAGES_NETDATA_PYTHON_MONGO}&sensors=${PACKAGES_NETDATA_SENSORS}&firehol=${PACKAGES_FIREHOL}&fireqos=${PACKAGES_FIREQOS}&iprange=${PACKAGES_IPRANGE}&update_ipsets=${PACKAGES_UPDATE_IPSETS}&demo=${PACKAGES_NETDATA_DEMO_SITE}"
 }
 
 if [ -z "${1}" ]
@@ -1492,6 +1469,7 @@ do
 			PACKAGES_NETDATA_PYTHON=1
 			PACKAGES_NETDATA_PYTHON_MYSQL=1
 			PACKAGES_NETDATA_PYTHON_POSTGRES=1
+			PACKAGES_NETDATA_PYTHON_MONGO=1
 			PACKAGES_NETDATA_SENSORS=1
 			;;
 
@@ -1500,11 +1478,11 @@ do
 			PACKAGES_NETDATA_PYTHON=1
 			;;
 
-		python|python-yaml|yaml-python|pyyaml|netdata-python)
+		python|netdata-python)
 			PACKAGES_NETDATA_PYTHON=1
 			;;
 
-		python3|python3-yaml|yaml-python3|netdata-python3)
+		python3|netdata-python3)
 			PACKAGES_NETDATA_PYTHON3=1
 			;;
 
@@ -1516,6 +1494,11 @@ do
 		python-postgres|postgres-python|psycopg2|netdata-postgres)
 			PACKAGES_NETDATA_PYTHON=1
 			PACKAGES_NETDATA_PYTHON_POSTGRES=1
+			;;
+
+		python-pymongo)
+			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_PYTHON_MONGO=1
 			;;
 
 		nodejs|netdata-nodejs)
@@ -1544,6 +1527,7 @@ do
 			PACKAGES_NETDATA_PYTHON3=1
 			PACKAGES_NETDATA_PYTHON_MYSQL=1
 			PACKAGES_NETDATA_PYTHON_POSTGRES=1
+			PACKAGES_NETDATA_PYTHON_MONGO=1
 			PACKAGES_DEBUG=1
 			PACKAGES_IPRANGE=1
 			PACKAGES_FIREHOL=1
