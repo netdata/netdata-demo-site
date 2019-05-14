@@ -30,6 +30,7 @@ PACKAGES_FIREQOS=${PACKAGES_FIREQOS-0}
 PACKAGES_UPDATE_IPSETS=${PACKAGES_UPDATE_IPSETS-0}
 PACKAGES_NETDATA_DEMO_SITE=${PACKAGES_NETDATA_DEMO_SITE-0}
 PACKAGES_NETDATA_SENSORS=${PACKAGES_NETDATA_SENSORS-0}
+PACKAGES_NETDATA_DATABASE=${PACKAGES_NETDATA_DATABASE-0}
 
 # needed commands
 lsb_release=$(which lsb_release 2>/dev/null || command -v lsb_release 2>/dev/null)
@@ -876,6 +877,38 @@ declare -A pkg_python3_requests=(
 	['default']="WARNING|"
 	)
 
+declare -A pkg_lz4=(
+	 ['alpine']="lz4-dev"
+	 ['debian']="liblz4-dev"
+	 ['ubuntu']="liblz4-dev"
+	 ['suse']="liblz4-1"
+	['default']="lz4-devel"
+	)
+
+declare -A pkg_libuv=(
+	 ['alpine']="libuv-dev"
+	 ['debian']="libuv1-dev"
+	 ['ubuntu']="libuv1-dev"
+	 ['suse']="libuv1"
+	['default']="libuv-devel"
+	)
+
+declare -A pkg_openssl=(
+	 ['alpine']="openssl-dev"
+	 ['debian']="libssl-dev"
+	 ['ubuntu']="libssl-dev"
+	 ['suse']="libopenssl1_1"
+	['default']="openssl-devel"
+	)
+
+declare -A pkg_judy=(
+	 ['alpine']="WARNING|" # TODO - need to add code to download and install judy for alpine case
+	 ['debian']="libjudy-dev"
+	 ['ubuntu']="libjudy-dev"
+	 ['suse']="libjudy1"
+	['default']="Judy-devel"
+	)
+
 declare -A pkg_python3=(
 	 ['gentoo']="dev-lang/python"
 	['sabayon']="dev-lang/python:3.4"
@@ -1066,6 +1099,16 @@ packages() {
 	if [ ${PACKAGES_NETDATA_SENSORS} -ne 0 ]
 		then
 		require_cmd sensors || suitable_package lm_sensors
+	fi
+
+	# -------------------------------------------------------------------------
+	# sensors
+	if [ ${PACKAGES_NETDATA_DATABASE} -ne 0 ]
+	then
+		suitable_package libuv
+		suitable_package lz4
+		suitable_package openssl
+		suitable_package judy
 	fi
 
 	# -------------------------------------------------------------------------
@@ -1415,7 +1458,7 @@ EOF
 remote_log() {
 	# log success or failure on our system
 	# to help us solve installation issues
-	curl >/dev/null 2>&1 -Ss --max-time 3 "https://registry.my-netdata.io/log/installer?status=${1}&error=${2}&distribution=${distribution}&version=${version}&installer=${package_installer}&tree=${tree}&detection=${detection}&netdata=${PACKAGES_NETDATA}&nodejs=${PACKAGES_NETDATA_NODEJS}&python=${PACKAGES_NETDATA_PYTHON}&python3=${PACKAGES_NETDATA_PYTHON3}&mysql=${PACKAGES_NETDATA_PYTHON_MYSQL}&postgres=${PACKAGES_NETDATA_PYTHON_POSTGRES}&pymongo=${PACKAGES_NETDATA_PYTHON_MONGO}&sensors=${PACKAGES_NETDATA_SENSORS}&firehol=${PACKAGES_FIREHOL}&fireqos=${PACKAGES_FIREQOS}&iprange=${PACKAGES_IPRANGE}&update_ipsets=${PACKAGES_UPDATE_IPSETS}&demo=${PACKAGES_NETDATA_DEMO_SITE}"
+	curl >/dev/null 2>&1 -Ss --max-time 3 "https://registry.my-netdata.io/log/installer?status=${1}&error=${2}&distribution=${distribution}&version=${version}&installer=${package_installer}&tree=${tree}&detection=${detection}&netdata=${PACKAGES_NETDATA}&nodejs=${PACKAGES_NETDATA_NODEJS}&python=${PACKAGES_NETDATA_PYTHON}&python3=${PACKAGES_NETDATA_PYTHON3}&mysql=${PACKAGES_NETDATA_PYTHON_MYSQL}&postgres=${PACKAGES_NETDATA_PYTHON_POSTGRES}&pymongo=${PACKAGES_NETDATA_PYTHON_MONGO}&sensors=${PACKAGES_NETDATA_SENSORS}&database=${PACKAGE_NETDATA_DATABASE}&firehol=${PACKAGES_FIREHOL}&fireqos=${PACKAGES_FIREQOS}&iprange=${PACKAGES_IPRANGE}&update_ipsets=${PACKAGES_UPDATE_IPSETS}&demo=${PACKAGES_NETDATA_DEMO_SITE}"
 }
 
 if [ -z "${1}" ]
@@ -1471,11 +1514,13 @@ do
 			PACKAGES_NETDATA_PYTHON_POSTGRES=1
 			PACKAGES_NETDATA_PYTHON_MONGO=1
 			PACKAGES_NETDATA_SENSORS=1
+			PACKAGES_NETDATA_DATABASE=1
 			;;
 
 		netdata)
 			PACKAGES_NETDATA=1
 			PACKAGES_NETDATA_PYTHON=1
+			PACKAGES_NETDATA_DATABASE=1
 			;;
 
 		python|netdata-python)
@@ -1504,12 +1549,14 @@ do
 		nodejs|netdata-nodejs)
 			PACKAGES_NETDATA=1
 			PACKAGES_NETDATA_NODEJS=1
+			PACKAGES_NETDATA_DATABASE=1
 			;;
 
 		sensors|netdata-sensors)
 			PACKAGES_NETDATA=1
 			PACKAGES_NETDATA_PYTHON=1
 			PACKAGES_NETDATA_SENSORS=1
+			PACKAGES_NETDATA_DATABASE=1
 			;;
 
 		firehol|update-ipsets|firehol-all|fireqos)
@@ -1534,6 +1581,7 @@ do
 			PACKAGES_FIREQOS=1
 			PACKAGES_UPDATE_IPSETS=1
 			PACKAGES_NETDATA_DEMO_SITE=1
+			PACKAGES_NETDATA_DATABASE=1
 			;;
 
 		help|-h|--help)
