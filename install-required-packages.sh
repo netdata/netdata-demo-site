@@ -289,21 +289,23 @@ user_picks_distribution() {
 	local opts=
 	echo >&2 "I found though that the following installers are available:"
 	echo >&2
-	[ ! -z "${apt_get}" ] && echo >&2 " - Debian/Ubuntu based (installer is: apt-get)" && opts="${opts} apt-get"
-	[ ! -z "${yum}"     ] && echo >&2 " - Redhat/Fedora/Centos based (installer is: yum)" && opts="${opts} yum"
-	[ ! -z "${dnf}"     ] && echo >&2 " - Redhat/Fedora/Centos based (installer is: dnf)" && opts="${opts} dnf"
-	[ ! -z "${zypper}"  ] && echo >&2 " - SuSe based (installer is: zypper)" && opts="${opts} zypper"
-	[ ! -z "${pacman}"  ] && echo >&2 " - Arch Linux based (installer is: pacman)" && opts="${opts} pacman"
-	[ ! -z "${emerge}"  ] && echo >&2 " - Gentoo based (installer is: emerge)" && opts="${opts} emerge"
-	[ ! -z "${equo}"    ] && echo >&2 " - Sabayon based (installer is: equo)" && opts="${opts} equo"
-	[ ! -z "${apk}"     ] && echo >&2 " - Alpine Linux based (installer is: apk)" && opts="${opts} apk"
+	[ ! -z "${apt_get}" ] && echo >&2 " - Debian/Ubuntu based (installer is: apt-get)" && opts="apt-get ${opts}"
+	[ ! -z "${yum}"     ] && echo >&2 " - Redhat/Fedora/Centos based (installer is: yum)" && opts="yum ${opts}"
+	[ ! -z "${dnf}"     ] && echo >&2 " - Redhat/Fedora/Centos based (installer is: dnf)" && opts="dnf ${opts}"
+	[ ! -z "${zypper}"  ] && echo >&2 " - SuSe based (installer is: zypper)" && opts="zypper ${opts}"
+	[ ! -z "${pacman}"  ] && echo >&2 " - Arch Linux based (installer is: pacman)" && opts="pacman ${opts}"
+	[ ! -z "${emerge}"  ] && echo >&2 " - Gentoo based (installer is: emerge)" && opts="emerge ${opts}"
+	[ ! -z "${equo}"    ] && echo >&2 " - Sabayon based (installer is: equo)" && opts="equo ${opts}"
+	[ ! -z "${apk}"     ] && echo >&2 " - Alpine Linux based (installer is: apk)" && opts="apk ${opts}"
 	echo >&2
 
 	REPLY=
 	while [ -z "${REPLY}" ]
 	do
-		read -p "To proceed please write one of these:${opts}: "
-		[ $? -ne 0 ] && continue
+		echo "To proceed please write one of these:"
+		echo "${opts}" | sed -e 's/ /, /g'
+		read -p ">" REPLY
+		[ $? -ne 0 ] && REPLY= && continue
 
 		if [ "${REPLY}" = "yum" -a -z "${distribution}" ]
 			then
@@ -478,6 +480,7 @@ check_package_manager() {
 			package_installer="install_pacman"
 			tree="arch"
 			detection="user-input"
+
 			return 0
 			;;
 
@@ -1205,12 +1208,13 @@ install_apt_get() {
 		echo >&2 
 	fi
 
-	local opts=
+	local opts="--ignore-missing"
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
+		echo >&2 "Running in non-interactive mode"
 		# http://serverfault.com/questions/227190/how-do-i-ask-apt-get-to-skip-any-interactive-post-install-configuration-steps
 		export DEBIAN_FRONTEND="noninteractive"
-		opts="-yq"
+		opts="${opts} -yq"
 	fi
 
 	# install the required packages
@@ -1239,6 +1243,7 @@ install_yum() {
 	local opts=
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
+		echo >&2 "Running in non-interactive mode"
 		# http://unix.stackexchange.com/questions/87822/does-yum-have-an-equivalent-to-apt-aptitudes-debian-frontend-noninteractive
 		opts="-y"
 	fi
@@ -1269,6 +1274,7 @@ install_dnf() {
 	local opts=
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
+		echo >&2 "Running in non-interactive mode"
 		# man dnf
 		opts="-y"
 	fi
@@ -1304,6 +1310,7 @@ install_emerge() {
 	local opts="--ask"
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
+		echo >&2 "Running in non-interactive mode"
 		opts=""
 	fi
 
@@ -1329,10 +1336,12 @@ install_apk() {
 		echo >&2 
 	fi
 
-	local opts="-i"
+	local opts="--force-broken-world"
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
-		opts=""
+		echo >&2 "Running in non-interactive mode"
+	else
+		opts="${opts} -i"
 	fi
 
 	# install the required packages
@@ -1360,6 +1369,7 @@ install_equo() {
 	local opts="-av"
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
+		echo >&2 "Running in non-interactive mode"
 		opts="-v"
 	fi
 
@@ -1370,7 +1380,15 @@ install_equo() {
 # -----------------------------------------------------------------------------
 # arch
 
+PACMAN_DB_SYNCED=0
 validate_install_pacman() {
+
+	if [ ${PACMAN_DB_SYNCED} -eq 0 ]; then
+		echo >&2 " > Running pacman -Sy to sync the database"
+		local x=$(pacman -Sy)
+		[ ! -n "${x}" ] && echo "${*}"
+		PACMAN_DB_SYNCED=1
+	fi;
 	echo >&2 " > Checking if package '${*}' is installed..."
 
 	local x=$(pacman -Qs "${*}")
@@ -1390,10 +1408,18 @@ install_pacman() {
 	# install the required packages
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
+		echo >&2 "Running in non-interactive mode"
 		# http://unix.stackexchange.com/questions/52277/pacman-option-to-assume-yes-to-every-question/52278
-		yes | run ${sudo} pacman --needed -S "${@}"
+		for pkg in "${@}"; do
+			[[ ${DRYRUN} -eq 0 ]] && echo >&2 "Adding package ${pkg}"
+			yes | run ${sudo} pacman --needed -S "${pkg}"
+		done
+
 	else
-		run ${sudo} pacman --needed -S "${@}"
+		for pkg in "${@}"; do
+		        [[ ${DRYRUN} -eq 0 ]] && echo >&2 "Adding package ${pkg}"
+			run ${sudo} pacman --needed -S "${pkg}"
+		done
 	fi
 }
 
@@ -1414,11 +1440,12 @@ install_zypper() {
 		echo >&2 
 	fi
 
-	local opts=""
+	local opts="--ignore-unknown"
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
+		echo >&2 "Running in non-interactive mode"
 		# http://unix.stackexchange.com/questions/82016/how-to-use-zypper-in-bash-scripts-for-someone-coming-from-apt-get
-		opts="--non-interactive"
+		opts="${opts} --non-interactive"
 	fi
 
 	# install the required packages
@@ -1607,7 +1634,11 @@ if [ -z "${package_installer}" -o -z "${tree}" ]
 		autodetect_distribution || user_picks_distribution
 	fi
 
-	detect_package_manager_from_distribution "${distribution}"
+	# When no package installer is detected, try again from distro info if any
+	if [ -z "${package_installer}" ]; then
+		detect_package_manager_from_distribution "${distribution}"
+	fi
+
 fi
 
 pv=$(python --version 2>&1)
