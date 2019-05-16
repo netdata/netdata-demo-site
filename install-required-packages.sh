@@ -1208,7 +1208,7 @@ install_apt_get() {
 		echo >&2 
 	fi
 
-	local opts="--ignore-missing"
+	local opts=""
 	if [ ${NON_INTERACTIVE} -eq 1 ]
 		then
 		echo >&2 "Running in non-interactive mode"
@@ -1218,7 +1218,10 @@ install_apt_get() {
 	fi
 
 	# install the required packages
-	run ${sudo} apt-get ${opts} install "${@}"
+	for pkg in "${@}"; do
+		[[ ${DRYRUN} -eq 0 ]] && echo >&2 "Adding package ${pkg}"
+		run ${sudo} apt-get ${opts} install "${pkg}"
+	done
 }
 
 
@@ -1315,7 +1318,10 @@ install_emerge() {
 	fi
 
 	# install the required packages
-	run ${sudo} emerge ${opts} -v --noreplace "${@}"
+	for pkg in "${@}"; do
+		[[ ${DRYRUN} -eq 0 ]] && echo >&2 "Adding package ${pkg}"
+		run ${sudo} emerge ${opts} -v --noreplace "${pkg}"
+	done
 }
 
 
@@ -1374,7 +1380,10 @@ install_equo() {
 	fi
 
 	# install the required packages
-	run ${sudo} equo i ${opts} "${@}"
+	for pkg in "${@}"; do
+		[[ ${DRYRUN} -eq 0 ]] && echo >&2 "Adding package ${pkg}"
+		run ${sudo} equo i ${opts} "${pkg}"
+	done
 }
 
 # -----------------------------------------------------------------------------
