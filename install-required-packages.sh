@@ -1315,7 +1315,10 @@ install_emerge() {
 	fi
 
 	# install the required packages
-	run ${sudo} emerge ${opts} -v --noreplace "${@}"
+	for pkg in "${@}"; do
+		[[ ${DRYRUN} -eq 0 ]] && echo >&2 "Adding package ${pkg}"
+		run ${sudo} emerge ${opts} -v --noreplace "${pkg}"
+	done
 }
 
 
@@ -1374,7 +1377,10 @@ install_equo() {
 	fi
 
 	# install the required packages
-	run ${sudo} equo i ${opts} "${@}"
+	for pkg in "${@}"; do
+		[[ ${DRYRUN} -eq 0 ]] && echo >&2 "Adding package ${pkg}"
+		run ${sudo} equo i ${opts} "${pkg}"
+	done
 }
 
 # -----------------------------------------------------------------------------
