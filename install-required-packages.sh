@@ -1400,7 +1400,15 @@ validate_install_pacman() {
 	fi;
 	echo >&2 " > Checking if package '${*}' is installed..."
 
-	local x=$(pacman -Qs "${*}")
+	# Temporary workaround: In archlinux, default installation includes runtime libs under package "gcc"
+	# These are not sufficient for netdata install, so we need to make sure that the appropriate libraries are there
+	# by ensuring devel libs are available
+	local x=""
+	if [ "${package}" == "gcc" ]; then
+		x=$(pacman -Qs "${*}" | grep "base-devel")
+	else
+		x=$(pacman -Qs "${*}")
+	fi
 	[ ! -n "${x}" ] && echo "${*}"
 }
 
@@ -1421,7 +1429,8 @@ install_pacman() {
 		# http://unix.stackexchange.com/questions/52277/pacman-option-to-assume-yes-to-every-question/52278
 		for pkg in "${@}"; do
 			[[ ${DRYRUN} -eq 0 ]] && echo >&2 "Adding package ${pkg}"
-			yes | run ${sudo} pacman --needed -S "${pkg}"
+			# Try the noconfirm option, if that fails, go with the legacy way for non-interactive
+			run ${sudo} pacman --noconfirm --needed -S "${pkg}" || yes | run ${sudo} pacman --needed -S "${pkg}"
 		done
 
 	else
