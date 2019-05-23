@@ -591,10 +591,6 @@ declare -A pkg_tar=(
 	['default']="tar"
 	)
 
-declare -A pkg_grep=(
-	['default']="grep"
-	)
-
 declare -A pkg_git=(
 	 ['gentoo']="dev-vcs/git"
 	['default']="git"
@@ -1653,8 +1649,10 @@ do
 	shift
 done
 
-# This is a core requirement, we need grep to detect OS and some distros seem to miss it
-require_cmd grep || suitable_package grep
+# Check for missing core commands like grep, warn the user to install it and bail out cleanly
+if ! command -v grep > /dev/null 2>&1; then
+	fatal "'grep' is required for the install to run correctly and was not found on the system. Please install grep and run the installer again."
+fi
 
 if [ -z "${package_installer}" -o -z "${tree}" ]
 	then
