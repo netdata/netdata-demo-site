@@ -589,7 +589,11 @@ declare -A pkg_curl=(
 
 declare -A pkg_tar=(
 	['default']="tar"
-)
+	)
+
+declare -A pkg_grep=(
+	['default']="grep"
+	)
 
 declare -A pkg_git=(
 	 ['gentoo']="dev-vcs/git"
@@ -1062,7 +1066,7 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA} -ne 0 ]
 		then
-	        require_cmd tar          || suitable_package tar
+	        require_cmd tar  || suitable_package tar
 		require_cmd curl || suitable_package curl
 		require_cmd nc   || suitable_package netcat
 	fi
@@ -1648,6 +1652,9 @@ do
 	esac
 	shift
 done
+
+# This is a core requirement, we need grep to detect OS and some distros seem to miss it
+require_cmd grep || suitable_package grep
 
 if [ -z "${package_installer}" -o -z "${tree}" ]
 	then
