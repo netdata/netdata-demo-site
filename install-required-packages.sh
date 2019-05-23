@@ -587,6 +587,10 @@ declare -A pkg_curl=(
 	['default']="curl"
 	)
 
+declare -A pkg_tar=(
+	['default']="tar"
+	)
+
 declare -A pkg_git=(
 	 ['gentoo']="dev-vcs/git"
 	['default']="git"
@@ -1058,6 +1062,7 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA} -ne 0 ]
 		then
+	        require_cmd tar  || suitable_package tar
 		require_cmd curl || suitable_package curl
 		require_cmd nc   || suitable_package netcat
 	fi
@@ -1404,11 +1409,18 @@ validate_install_pacman() {
 	# These are not sufficient for netdata install, so we need to make sure that the appropriate libraries are there
 	# by ensuring devel libs are available
 	local x=""
-	if [ "${package}" == "gcc" ]; then
-		x=$(pacman -Qs "${*}" | grep "base-devel")
-	else
-		x=$(pacman -Qs "${*}")
-	fi
+	case "${package}" in
+		"gcc")
+			x=$(pacman -Qs "${*}" | grep "base-devel")
+			;;
+		"tar")
+			x=$(pacman -Qs "${*}" | grep "local/tar")
+			;;
+		*)
+			x=$(pacman -Qs "${*}")
+			;;
+	esac
+
 	[ ! -n "${x}" ] && echo "${*}"
 }
 
@@ -1643,6 +1655,15 @@ do
 	esac
 	shift
 done
+
+# Check for missing core commands like grep, warn the user to install it and bail out cleanly
+if ! command -v grep > /dev/null 2>&1; then
+	echo >&2
+	echo >&2 "ERROR: 'grep' is required for the install to run correctly and was not found on the system."
+	echo >&2 "Please install grep and run the installer again."
+	echo >&2
+	exit 1
+fi
 
 if [ -z "${package_installer}" -o -z "${tree}" ]
 	then
