@@ -587,6 +587,10 @@ declare -A pkg_curl=(
 	['default']="curl"
 	)
 
+declare -A pkg_tar=(
+	['default']="tar"
+)
+
 declare -A pkg_git=(
 	 ['gentoo']="dev-vcs/git"
 	['default']="git"
@@ -1058,6 +1062,7 @@ packages() {
 
 	if [ ${PACKAGES_NETDATA} -ne 0 ]
 		then
+	        require_cmd tar          || suitable_package tar
 		require_cmd curl || suitable_package curl
 		require_cmd nc   || suitable_package netcat
 	fi
