@@ -531,6 +531,11 @@ require_cmd() {
 	return 1
 }
 
+declare -A pkg_find=(
+	['fedora']="findutils"
+	['default']="WARNING|"
+)
+
 declare -A pkg_distro_sdk=(
 	 ['alpine']="alpine-sdk"
 	['default']="NOTREQUIRED"
@@ -1030,6 +1035,7 @@ packages() {
 	suitable_package distro-sdk
 
 	require_cmd git          || suitable_package git
+	require_cmd find          || suitable_package find
 
 	require_cmd gcc          || \
 	require_cmd gcc-multilib || suitable_package gcc
