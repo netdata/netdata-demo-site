@@ -917,7 +917,7 @@ declare -A pkg_judy=(
 	 ['alpine']="WARNING|" # TODO - need to add code to download and install judy for alpine case
 	 ['debian']="libjudy-dev"
 	 ['ubuntu']="libjudy-dev"
-	 ['suse']="libjudy1"
+	 ['suse']="libJudy1"
 	['default']="Judy-devel"
 	)
 
