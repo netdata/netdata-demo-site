@@ -185,7 +185,7 @@ get_os_release() {
 		for x in "${ID}" ${ID_LIKE}
 		do
 			case "${x,,}" in
-				alpine|arch|centos|debian|fedora|gentoo|sabayon|rhel|ubuntu|suse|sles)
+				alpine|arch|centos|debian|fedora|gentoo|sabayon|rhel|ubuntu|suse|opensuse-leap|sles)
 					distribution="${x}"
 					version="${VERSION_ID}"
 					codename="${VERSION}"
