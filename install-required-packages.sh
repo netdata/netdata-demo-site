@@ -592,6 +592,10 @@ declare -A pkg_curl=(
 	['default']="curl"
 	)
 
+declare -A pkg_gzip=(
+	['default']="gzip"
+)
+
 declare -A pkg_tar=(
 	['default']="tar"
 	)
@@ -1070,6 +1074,7 @@ packages() {
 		then
 	        require_cmd tar  || suitable_package tar
 		require_cmd curl || suitable_package curl
+		require_cmd gzip || suitable_package gzip
 		require_cmd nc   || suitable_package netcat
 	fi
 
