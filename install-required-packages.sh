@@ -185,7 +185,7 @@ get_os_release() {
 		for x in "${ID}" ${ID_LIKE}
 		do
 			case "${x,,}" in
-				alpine|arch|centos|debian|fedora|gentoo|sabayon|rhel|ubuntu|suse|sles)
+				alpine|arch|centos|debian|fedora|gentoo|sabayon|rhel|ubuntu|suse|opensuse-leap|sles)
 					distribution="${x}"
 					version="${VERSION_ID}"
 					codename="${VERSION}"
@@ -591,6 +591,10 @@ declare -A pkg_curl=(
 	['sabayon']="net-misc/curl"
 	['default']="curl"
 	)
+
+declare -A pkg_gzip=(
+	['default']="gzip"
+)
 
 declare -A pkg_tar=(
 	['default']="tar"
@@ -1070,6 +1074,7 @@ packages() {
 		then
 	        require_cmd tar  || suitable_package tar
 		require_cmd curl || suitable_package curl
+		require_cmd gzip || suitable_package gzip
 		require_cmd nc   || suitable_package netcat
 	fi
 
