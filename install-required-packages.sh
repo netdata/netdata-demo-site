@@ -1427,6 +1427,9 @@ validate_install_pacman() {
 		"tar")
 			x=$(pacman -Qs "${*}" | grep "local/tar")
 			;;
+		"make")
+			x=$(pacman -Qs "${*}" | grep "local/make ")
+			;;
 		*)
 			x=$(pacman -Qs "${*}")
 			;;
