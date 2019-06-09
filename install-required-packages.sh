@@ -1416,16 +1416,22 @@ validate_install_pacman() {
 	fi;
 	echo >&2 " > Checking if package '${*}' is installed..."
 
-	# Temporary workaround: In archlinux, default installation includes runtime libs under package "gcc"
-	# These are not sufficient for netdata install, so we need to make sure that the appropriate libraries are there
-	# by ensuring devel libs are available
+	# In pacman, you can utilize alternative flags to exactly match package names,
+	# but is highly likely we require pattern matching too in this so we keep -s and match
+	# the exceptional cases like so
 	local x=""
 	case "${package}" in
 		"gcc")
+			# Temporary workaround: In archlinux, default installation includes runtime libs under package "gcc"
+			# These are not sufficient for netdata install, so we need to make sure that the appropriate libraries are there
+			# by ensuring devel libs are available
 			x=$(pacman -Qs "${*}" | grep "base-devel")
 			;;
 		"tar")
 			x=$(pacman -Qs "${*}" | grep "local/tar")
+			;;
+		"make")
+			x=$(pacman -Qs "${*}" | grep "local/make ")
 			;;
 		*)
 			x=$(pacman -Qs "${*}")
