@@ -897,7 +897,7 @@ declare -A pkg_lz4=(
 	 ['alpine']="lz4-dev"
 	 ['debian']="liblz4-dev"
 	 ['ubuntu']="liblz4-dev"
-	 ['suse']="liblz4-1"
+	 ['suse']="liblz4-devel"
 	['default']="lz4-devel"
 	)
 
@@ -913,7 +913,7 @@ declare -A pkg_openssl=(
 	 ['alpine']="openssl-dev"
 	 ['debian']="libssl-dev"
 	 ['ubuntu']="libssl-dev"
-	 ['suse']="libopenssl1_1"
+	 ['suse']="libopenssl-devel"
 	['default']="openssl-devel"
 	)
 
