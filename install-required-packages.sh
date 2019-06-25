@@ -555,10 +555,8 @@ declare -A pkg_autoconf_archive=(
 
 	# exceptions
        ['centos-6']="WARNING|"
-       ['centos-7']="WARNING|"
          ['rhel-6']="WARNING|"
          ['rhel-7']="WARNING|"
-      ['ubuntu-18']="WARNING|"
 	)
 
 declare -A pkg_autogen=(
@@ -677,7 +675,7 @@ declare -A pkg_libmnl_dev=(
 	 ['gentoo']="net-libs/libmnl"
 	['sabayon']="net-libs/libmnl"
 	   ['rhel']="libmnl-devel"
-	   ['suse']="libmnl0"
+	   ['suse']="libmnl-devel"
 	['default']=""
 	)
 
@@ -905,7 +903,6 @@ declare -A pkg_libuv=(
 	 ['alpine']="libuv-dev"
 	 ['debian']="libuv1-dev"
 	 ['ubuntu']="libuv1-dev"
-	 ['suse']="libuv1"
 	['default']="libuv-devel"
 	)
 
