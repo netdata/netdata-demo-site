@@ -896,6 +896,7 @@ declare -A pkg_lz4=(
 	 ['debian']="liblz4-dev"
 	 ['ubuntu']="liblz4-dev"
 	 ['suse']="liblz4-devel"
+	 ['gentoo']="app-arch/lz4"
 	['default']="lz4-devel"
 	)
 
@@ -903,6 +904,7 @@ declare -A pkg_libuv=(
 	 ['alpine']="libuv-dev"
 	 ['debian']="libuv1-dev"
 	 ['ubuntu']="libuv1-dev"
+	 ['gentoo']="dev-libs/libuv"
 	['default']="libuv-devel"
 	)
 
@@ -919,6 +921,7 @@ declare -A pkg_judy=(
 	 ['debian']="libjudy-dev"
 	 ['ubuntu']="libjudy-dev"
 	 ['suse']="judy-devel"
+	 ['gentoo']="dev-libs/judy"
 	['default']="Judy-devel"
 	)
 
