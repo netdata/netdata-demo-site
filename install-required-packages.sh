@@ -905,6 +905,7 @@ declare -A pkg_libuv=(
 	 ['debian']="libuv1-dev"
 	 ['ubuntu']="libuv1-dev"
 	 ['gentoo']="dev-libs/libuv"
+	 ['arch']="libuv"
 	['default']="libuv-devel"
 	)
 
@@ -922,6 +923,7 @@ declare -A pkg_judy=(
 	 ['ubuntu']="libjudy-dev"
 	 ['suse']="judy-devel"
 	 ['gentoo']="dev-libs/judy"
+	 ['arch']="judy"
 	['default']="Judy-devel"
 	)
 
