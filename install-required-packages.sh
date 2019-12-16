@@ -761,6 +761,9 @@ declare -A pkg_python=(
 	 ['gentoo']="dev-lang/python"
 	['sabayon']="dev-lang/python:2.7"
 	['default']="python"
+
+	# Exceptions
+       ['centos-8']="python2"
 	)
 
 declare -A pkg_python_mysqldb=(
