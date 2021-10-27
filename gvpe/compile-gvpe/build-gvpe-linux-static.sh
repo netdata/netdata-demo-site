@@ -87,6 +87,7 @@ then
 fi
 
 echo > doc/Makefile.am
+echo > lib/getopt1.c
 
 export AUTOMAKE="automake"
 export ACLOCAL="aclocal"
