@@ -1,5 +1,21 @@
 #!/bin/sh
 
+run() {
+	echo >&2 " "
+	echo >&2 "${PWD} > ${@}"
+	"${@}"
+	ret=$?
+	
+	if [ "${ret}" = "0" ]
+	then
+		echo >&2 " - OK - "
+	else
+		echo >&2 " - FAILED - ${ret} "
+	fi
+	
+	return ${ret}
+}
+
 if [ "${1}" != "inside-container" ]
     then
     ME="$(basename "${0}")"
@@ -13,23 +29,23 @@ if [ "${1}" != "inside-container" ]
 
     ret=0
 
-    sudo docker run -a stdin -a stdout -a stderr -i -t \
-        -v "${DIR}:/tmp/mapped:rw" alpine:3.7 \
+    run sudo docker run -a stdin -a stdout -a stderr -i -t \
+        -v "${DIR}:/tmp/mapped:rw" alpine:edge \
         /bin/sh "/tmp/mapped/${ME}" inside-container
     ret=$?
 
     if [ ${ret} -eq 0 ]
         then
         echo "Copying generated binaries to ${DIR}/../sbin.linux/"
-        mv ${DIR}/gvpe ${DIR}/../sbin.linux/
-        mv ${DIR}/gvpectrl ${DIR}/../sbin.linux/
+        run mv ${DIR}/gvpe ${DIR}/../sbin.linux/
+        run mv ${DIR}/gvpectrl ${DIR}/../sbin.linux/
     fi
 
     exit ${ret}
 fi
 
-apk update || exit 1
-apk add --no-cache \
+run apk update || exit 1
+run apk add --no-cache \
     bash \
     wget \
     curl \
@@ -44,7 +60,7 @@ apk add --no-cache \
     libtool \
     pkgconfig \
     util-linux-dev \
-    openssl-dev \
+    libressl-dev \
     gnutls-dev \
     zlib-dev \
     libmnl-dev \
@@ -54,20 +70,20 @@ apk add --no-cache \
 
 if [ ! -d /usr/src ]
     then
-    mkdir -p /usr/src || exit 1
+    run mkdir -p /usr/src || exit 1
 fi
 cd /usr/src || exit 1
 
 if [ ! -d gvpe ]
 then
-    cvs -z3 -d :pserver:anonymous@cvs.schmorp.de/schmorpforge co gvpe || exit 1
+    run cvs -z3 -d :pserver:anonymous@cvs.schmorp.de/schmorpforge co gvpe || exit 1
 fi
 
-cd gvpe
+run cd gvpe
 
 if [ ! -d libev ]
 then
-    cvs -z3 -d :pserver:anonymous@cvs.schmorp.de/schmorpforge co libev || exit 1
+    run cvs -z3 -d :pserver:anonymous@cvs.schmorp.de/schmorpforge co libev || exit 1
 fi
 
 echo > doc/Makefile.am
@@ -79,29 +95,31 @@ export LDFLAGS="-static"
 # lower 15 seconds to 10 seconds for re-connecting
 #sed -i "s|^  else if (when < -15)$|  else if (when < -10)|g" src/connection.C || echo >& " --- FAILED TO PATCH CONNECTION.C --- "
 
-./autogen.sh \
+run ./autogen.sh \
     --prefix=/ \
     --enable-iftype=native/linux \
     --enable-threads \
-    --enable-bridging \
     --enable-rsa-length=3072 \
     --enable-hmac-length=12 \
     --enable-max-mtu=9000 \
     --enable-cipher=aes-256 \
     --enable-hmac-digest=ripemd160 \
     --enable-auth-digest=sha512 \
-    --enable-rand-length=12 \
     --enable-static-daemon \
     ${NULL} 
 
-make clean
-make -j8 || exit 1
+#    --enable-bridging \
+#    --enable-rand-length=12 \
+
+run make clean
+run make -j8 || exit 1
 
 echo "gvpe linking:"
-ldd src/gvpe
-cp src/gvpe /tmp/mapped/
+run ldd src/gvpe
+run cp src/gvpe /tmp/mapped/
 
 echo
 echo "gvpectrl linking:"
-ldd src/gvpectrl
-cp src/gvpectrl /tmp/mapped/
+run ldd src/gvpectrl
+run cp src/gvpectrl /tmp/mapped/
+
